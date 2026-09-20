@@ -5,6 +5,7 @@ import { createServer } from './index.mjs';
 
 async function withServer(load, run, options = {}) {
   const server = createServer({
+    staticDir: false,
     clientFactory: (config) =>
       Object.assign((selection) => load(selection), {
         projects: async () => ({ value: [{ id: 'p', name: 'Pages' }], defaults: config }),

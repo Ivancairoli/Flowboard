@@ -32,10 +32,10 @@ Las historias se combinan sin duplicados; cada tarjeta muestra su ruta de iterac
 
 No alcanza con subir Angular a un hosting estático: también debe ejecutarse el backend Node.js. Esta implementación contempla una instancia del backend y un origen HTTPS común para frontend y API.
 
-1. Ejecutar npm ci y npm run build. Servir dist/Flowboard/browser como sitio estático con fallback a index.html.
+1. Ejecutar npm ci --include=dev y npm run build. En producción Node sirve dist/Flowboard/browser como sitio estático con fallback a index.html.
 2. Ejecutar node server/index.mjs con NODE_ENV=production y PUBLIC_ORIGIN=https://tu-dominio.example (sin barra final). Opcionalmente definir PORT (3001 por defecto) y HOST (127.0.0.1 por defecto; usar 0.0.0.0 si el contenedor lo requiere).
-3. Configurar el proxy HTTPS para enviar /api/ al backend, preservando Host con el dominio público y las cabeceras Origin y Cookie. No cachear /api, no registrar cuerpos ni cookies y no exponer el puerto HTTP del backend a Internet. Las demás rutas sirven Angular. El proxy debe admitir consultas de hasta 120 segundos y solicitudes POST /api/tasks de hasta 660 segundos para lotes de creación.
-4. Redirigir HTTP a HTTPS en el proxy. PUBLIC_ORIGIN es obligatorio en producción y solo admite HTTPS. La API rechaza otros orígenes y requiere una cabecera propia y un Origin válido para conectar o cerrar sesión.
+3. Configurar el proxy HTTPS para enviar las solicitudes al backend, preservando Host con el dominio público y las cabeceras Origin y Cookie. No cachear /api, no registrar cuerpos ni cookies y no exponer el puerto HTTP del backend a Internet. El mismo servidor sirve Angular. El proxy debe admitir consultas de hasta 120 segundos y solicitudes POST /api/tasks de hasta 660 segundos para lotes de creación.
+4. Redirigir HTTP a HTTPS en el proxy. PUBLIC_ORIGIN es obligatorio en producción y solo admite HTTPS, excepto en Render donde se obtiene automáticamente de RENDER_EXTERNAL_URL. La API rechaza otros orígenes y requiere una cabecera propia y un Origin válido para conectar o cerrar sesión.
 5. Verificar con dos perfiles de navegador que cada uno consulta sus datos y que cerrar una sesión no afecta a la otra.
 
 No se desplegó ningún servicio como parte de este cambio. Para varias réplicas o sesiones persistentes se requiere diseñar un almacén compartido protegido; el almacenamiento actual es memoria de una sola instancia. Los PATs deben tener el menor alcance y duración necesarios; si alguno quedó en archivos compartidos o en Git, revocarlo y sustituirlo. No basta con borrar el archivo actual.

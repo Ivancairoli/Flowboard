@@ -5,6 +5,7 @@ import { parseEnv } from 'node:util';
 import { createAzureClient, ConnectionError } from './azure.mjs';
 import { createSessions, readJson } from './session.mjs';
 import { validateTaskRequest } from './task-write.mjs';
+import { createStaticHandler } from './static.mjs';
 
 const envPath = fileURLToPath(new URL('../.env', import.meta.url));
 if (existsSync(envPath)) {
@@ -25,7 +26,10 @@ if (Object.values(stateMap).some((stage) => !allowedStages.has(stage)))
   throw new Error('server/state-map.json contiene una etapa inválida.');
 export function createServer(options = {}) {
   const production = options.production ?? process.env.NODE_ENV === 'production';
-  const publicOrigin = options.publicOrigin ?? process.env.PUBLIC_ORIGIN;
+  const publicOrigin =
+    options.publicOrigin ??
+    process.env.PUBLIC_ORIGIN ??
+    (process.env.RENDER === 'true' ? process.env.RENDER_EXTERNAL_URL : undefined);
   if (production && !publicOrigin) throw new Error('PUBLIC_ORIGIN es obligatorio en producción.');
   if (
     publicOrigin &&
@@ -43,6 +47,10 @@ export function createServer(options = {}) {
         ],
   );
   const hosts = new Set([...origins].map((origin) => new URL(origin).host));
+  const staticDir =
+    options.staticDir ??
+    (production ? fileURLToPath(new URL('../dist/Flowboard/browser', import.meta.url)) : false);
+  const serveStatic = staticDir ? createStaticHandler(staticDir) : null;
   const sessions = createSessions({
     clientFactory: options.clientFactory || ((config) => createAzureClient(config, stateMap)),
     secure: !!publicOrigin,
@@ -58,13 +66,15 @@ export function createServer(options = {}) {
       res.writeHead(status);
       res.end(JSON.stringify(body));
     };
+    if (!hosts.has(req.headers.host)) return send(403, { error: 'Origen no permitido.' });
+    const url = new URL(req.url, 'http://localhost');
+    if (serveStatic && url.pathname !== '/api' && !url.pathname.startsWith('/api/'))
+      return serveStatic(req, res, url.pathname);
     if (
-      !hosts.has(req.headers.host) ||
       (req.headers.origin && !origins.has(req.headers.origin)) ||
       req.headers['sec-fetch-site'] === 'cross-site'
     )
       return send(403, { error: 'Origen no permitido.' });
-    const url = new URL(req.url, 'http://localhost');
     if (req.method === 'GET' && req.url === '/api/health') return send(200, { status: 'ok' });
     if (
       req.method !== 'GET' &&
@@ -228,10 +238,10 @@ export function createServer(options = {}) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const server = createServer();
   server.on('error', () => {
-    console.error('No se pudo iniciar el servicio local. Verificá que el puerto 3001 esté libre.');
+    console.error('No se pudo iniciar FlowBoard. Verificá HOST y PORT.');
     process.exitCode = 1;
   });
   server.listen(Number(process.env.PORT || 3001), process.env.HOST || '127.0.0.1', () =>
-    console.log('FlowBoard API iniciada (sesiones individuales).'),
+    console.log('FlowBoard iniciado (sesiones individuales).'),
   );
 }

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: flowboard
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:production
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.23.2
+      - key: HOST
+        value: 0.0.0.0
