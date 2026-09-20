@@ -1,0 +1,69 @@
+<header class="topbar">
+  <a class="brand" href="./" aria-label="FlowBoard inicio"
+    ><span class="logo">f<span>↗</span></span
+    >FlowBoard</a
+  >
+  <div class="top-controls">
+    <div class="context-select">
+      <mat-select
+        aria-label="Proyecto"
+        placeholder="Proyecto"
+        [value]="project"
+        [disabled]="busy || !projects.length"
+        (selectionChange)="projectChange.emit($event.value)"
+      >
+        @for (item of projects; track item.id) {
+          <mat-option [value]="item.name">{{ item.name }}</mat-option>
+        }
+      </mat-select>
+    </div>
+    <div class="context-select">
+      <mat-select
+        aria-label="Equipo"
+        placeholder="Equipo"
+        [value]="team"
+        [disabled]="busy || !teams.length"
+        (selectionChange)="teamChange.emit($event.value)"
+      >
+        @for (item of teams; track item.id) {
+          <mat-option [value]="item.name">{{ item.name }}</mat-option>
+        }
+      </mat-select>
+    </div>
+    <div class="context-select sprint-select">
+      <mat-select
+        aria-label="Sprints"
+        placeholder="Seleccionar sprints"
+        multiple
+        [value]="selectedSprints"
+        [disabled]="busy || !sprints.length"
+        (selectionChange)="sprintsChange.emit($event.value)"
+      >
+        <mat-select-trigger
+          >{{ selectedSprints.length }} sprint(s) seleccionados</mat-select-trigger
+        >
+        @for (group of groups; track group.key) {
+          <mat-optgroup [label]="group.label">
+            @for (sprint of group.sprints; track sprint.id) {
+              <mat-option [value]="sprint.id">
+                {{ sprint.name }} · {{ sprint.path }}
+                @if (sprint.startDate) {
+                  <small>
+                    ({{ sprint.startDate | date: 'dd/MM/yy' : 'UTC' }} –
+                    {{ sprint.finishDate | date: 'dd/MM/yy' : 'UTC' }})</small
+                  >
+                }
+              </mat-option>
+            }
+          </mat-optgroup>
+        }
+      </mat-select>
+    </div>
+    <span class="live" [class.disconnected]="!connected"
+      ><i></i>{{ connected ? 'CONECTADO' : 'SIN CONEXIÓN' }}</span
+    >
+  </div>
+  <button class="disconnect" type="button" [disabled]="sessionBusy" (click)="disconnected.emit()">
+    Cerrar sesión
+  </button>
+</header>

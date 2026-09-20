@@ -1,0 +1,21 @@
+<div class="specialties" aria-label="Avance por especialidad">
+  @for (group of groups(); track group.name) {
+    <div
+      class="specialty"
+      [matTooltip]="group.description"
+      [attr.aria-label]="group.name + ': ' + group.description"
+    >
+      <span class="label">{{ group.name }}</span>
+      <strong [class.complete]="group.progress === 100">{{
+        group.tasks.length ? group.completed + '/' + group.tasks.length : 'Sin tareas'
+      }}</strong>
+      <span class="people"
+        >{{ group.assignees[0]?.name || (group.tasks.length ? 'Sin asignar' : '—')
+        }}{{ group.assignees.length > 1 ? ' +' + (group.assignees.length - 1) : '' }}</span
+      >
+    </div>
+  }
+</div>
+@if (unclassified()) {
+  <span class="unclassified">{{ unclassified() }} tarea(s) sin clasificar · Revisar etiquetas</span>
+}

@@ -1,0 +1,46 @@
+<div class="filters">
+  <label class="search"
+    ><span>⌕</span
+    ><input
+      placeholder="Buscar historia..."
+      aria-label="Buscar historia"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+  /></label>
+  <div class="filter-select">
+    <mat-select [value]="status()" (selectionChange)="status.set($event.value)" aria-label="Estado"
+      ><mat-select-trigger
+        >Estado<span>{{ status() === 'Todos' ? '' : ': ' + status() }}</span></mat-select-trigger
+      >
+      @for (
+        state of [
+          'Todos',
+          'Sin comenzar',
+          'En desarrollo',
+          'Para Testing',
+          'En testing',
+          'Finalizadas',
+          'Bloqueada',
+          'Sin clasificar',
+        ];
+        track state
+      ) {
+        <mat-option [value]="state">{{ state }}</mat-option>
+      }
+    </mat-select>
+  </div>
+  <div class="filter-select">
+    <mat-select
+      [value]="owner()"
+      (selectionChange)="owner.set($event.value)"
+      aria-label="Responsable"
+      ><mat-select-trigger>{{
+        owner() === 'Todos' ? 'Responsable' : selectedOwnerName
+      }}</mat-select-trigger>
+      <mat-option value="Todos">Todos</mat-option>
+      @for (person of owners; track person.id) {
+        <mat-option [value]="person.id">{{ person.fullName }}</mat-option>
+      }
+    </mat-select>
+  </div>
+</div>

@@ -1,0 +1,47 @@
+<section class="metrics" aria-label="Resumen del sprint">
+  <div class="metric">
+    <span class="metric-icon blue" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M8 8h8M8 12h8M8 16h8" />
+      </svg>
+    </span>
+    <div>
+      <strong>{{ stories.length }}</strong
+      ><span>Historias</span>
+    </div>
+    <span class="metric-note">en este sprint</span>
+  </div>
+  <div class="metric">
+    <span class="metric-icon amber" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16" /></svg>
+    </span>
+    <div>
+      <strong>{{ count('En desarrollo') }}</strong
+      ><span>En desarrollo</span>
+    </div>
+    <span class="metric-dot amber"></span>
+  </div>
+  <div class="metric">
+    <span class="metric-icon purple" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M9 3h6m-5 0v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 14h8" />
+      </svg>
+    </span>
+    <div>
+      <strong>{{ count('En testing') }}</strong
+      ><span>En testing</span>
+    </div>
+    <span class="metric-dot purple"></span>
+  </div>
+  <div class="metric">
+    <span class="metric-icon green" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12" /></svg>
+    </span>
+    <div>
+      <strong>{{ count('Finalizadas') }}</strong
+      ><span>Finalizadas</span>
+    </div>
+    <span class="metric-dot green"></span>
+  </div>
+</section>

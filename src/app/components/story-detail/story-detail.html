@@ -1,0 +1,92 @@
+<aside class="detail" aria-label="Detalle de historia">
+  <div class="detail-top">
+    <span>DETALLE DE HISTORIA</span
+    ><button mat-icon-button aria-label="Cerrar detalle" (click)="closed.emit()">×</button>
+  </div>
+  <div class="detail-body" tabindex="0" role="region" aria-label="Contenido de la historia">
+    <div class="detail-id">{{ story.project }} <span>/</span> #{{ story.id }}</div>
+    <h2>{{ story.title }}</h2>
+    <span [class]="'badge ' + story.tone">{{ story.status }}</span>
+    <p class="detail-description">{{ story.description || 'Sin descripción.' }}</p>
+    <div class="detail-meta">
+      <span
+        >Sprint<strong>{{ story.iteration }}</strong></span
+      ><span
+        >Estado en Azure<strong>{{ story.azureState }}</strong></span
+      >
+    </div>
+    <p class="assignee">Responsable: {{ story.assignee?.fullName || 'Sin asignar' }}</p>
+    <section class="linked-bugs" aria-label="Bugs vinculados">
+      <h3>Bugs vinculados · {{ story.openBugCount }} abiertos / {{ story.bugCount }} total</h3>
+      @for (bug of story.bugs; track bug.id) {
+        <div class="timeline-item">
+          <div>
+            <h4>
+              <a [href]="bug.url" target="_blank" rel="noopener noreferrer"
+                >#{{ bug.id }} · {{ bug.title }}</a
+              >
+            </h4>
+            <p>{{ bug.state }} · {{ bug.completed ? 'Cerrado' : 'Abierto' }}</p>
+          </div>
+        </div>
+      } @empty {
+        <p class="detail-description">Sin bugs vinculados.</p>
+      }
+    </section>
+    <div class="workflow-heading">
+      <h3>Tareas vinculadas</h3>
+      <span>{{ story.progress === null ? 'Sin avance disponible' : story.progress + '%' }}</span>
+    </div>
+    <button mat-button type="button" (click)="creating = true">＋ Crear tareas</button>
+    <p class="detail-description">
+      {{ story.message }}. El porcentaje representa tareas completadas, no esfuerzo ni tiempo
+      restante.
+    </p>
+    <app-task-specialties [tasks]="story.tasks" />
+    <div class="timeline">
+      @for (group of taskGroups; track group.name) {
+        <h3 class="task-group-title">
+          {{ group.name }} <span>{{ group.tasks.length }}</span>
+        </h3>
+        @for (task of group.tasks; track task.id) {
+          <div class="timeline-item">
+            <span [class]="'timeline-icon ' + (task.completed ? 'green' : 'gray')">{{
+              task.completed ? '✓' : '◷'
+            }}</span>
+            <div>
+              <h4>
+                <a [href]="task.url" target="_blank" rel="noopener noreferrer"
+                  >#{{ task.id }} · {{ task.title }}</a
+                >
+              </h4>
+              <p>{{ task.state }}</p>
+              @if (task.specialty === 'Testing') {
+                <p>
+                  {{ task.deployedToTesting ? 'Desplegada en Testing' : 'Sin etiqueta En Testing' }}
+                </p>
+              }
+              @if (!task.specialty) {
+                <p class="classification-note">
+                  {{
+                    task.classificationIssue === 'multiple'
+                      ? 'Más de una etiqueta de especialidad: dejá solo una.'
+                      : 'Agregá Frontend, Backend o Testing a esta tarea.'
+                  }}
+                </p>
+              }
+              <span class="assignee">{{ task.assignee?.fullName || 'Sin asignar' }}</span>
+            </div>
+          </div>
+        }
+      } @empty {
+        <p class="detail-description">Esta historia no tiene tareas vinculadas.</p>
+      }
+    </div>
+    <a mat-button [href]="story.url" target="_blank" rel="noopener noreferrer"
+      >Abrir historia en Azure DevOps ↗</a
+    >
+  </div>
+</aside>
+@if (creating) {
+  <app-task-creator [story]="story" (closed)="creating = false" />
+}

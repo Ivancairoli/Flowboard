@@ -1,1 +1,45 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+      ),
+      typography: (
+        plain-family: 'Inter, Segoe UI, sans-serif',
+        brand-family: 'Inter, Segoe UI, sans-serif',
+      ),
+      density: -3,
+    )
+  );
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #202738;
+  background: #f8f9fc;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+:root {
+  --mat-select-trigger-text-size: 12px;
+  --mat-button-text-label-text-size: 12px;
+  --mat-button-text-label-text-weight: 600;
+  --mat-progress-bar-track-height: 5px;
+  --mat-progress-bar-active-indicator-height: 5px;
+}

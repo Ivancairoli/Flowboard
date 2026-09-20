@@ -1,0 +1,20 @@
+{
+  "New": "Sin comenzar",
+  "To Do": "Sin comenzar",
+  "Sin comenzar": "Sin comenzar",
+  "Active": "En desarrollo",
+  "Doing": "En desarrollo",
+  "In Progress": "En desarrollo",
+  "En desarrollo": "En desarrollo",
+  "Bloqueada": "En desarrollo",
+  "Blocked": "En desarrollo",
+  "Resolved": "Para Testing",
+  "Ready for Testing": "Para Testing",
+  "Para Testing": "Para Testing",
+  "Lista para Testing": "Para Testing",
+  "Testing": "En testing",
+  "En testing": "En testing",
+  "Closed": "Finalizadas",
+  "Done": "Finalizadas",
+  "Finalizadas": "Finalizadas"
+}

@@ -1,5 +1,13 @@
 # Flowboard
 
+FlowBoard facilita el seguimiento de historias de usuario de Azure DevOps con responsables, estados y tareas reales. Cada persona ingresa el enlace de su tablero y su PAT en la pantalla de conexión. Un servicio Node.js consulta Azure, permite crear tareas desde plantillas con confirmación y mantiene sesiones y cachés independientes.
+
+## Documentación del proyecto
+
+- [Objetivo del sistema](docs/objetivo-del-sistema.md): propósito, usuarios, funcionamiento esperado y alcance inicial.
+- [Estructura del frontend](docs/estructura-del-frontend.md): componentes, estado compartido y organización del código.
+- [Conexión con Azure DevOps](docs/conexion-azure.md): configuración del PAT, inicio y solución de errores.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.2.
 
 ## Development server
@@ -7,10 +15,10 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 To start a local development server, run:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+`npm start` inicia Angular y la API local. Abrí `http://127.0.0.1:4200/` e ingresá el enlace de tu tablero y tu PAT. Ya no se usa un PAT compartido en `.env`. Para publicar, serví el frontend y `/api` bajo un mismo origen HTTPS; ver [publicación y sesiones](docs/conexion-azure.md#publicación).
 
 ## Code scaffolding
 

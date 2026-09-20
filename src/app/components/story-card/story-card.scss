@@ -1,0 +1,235 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.story-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px;
+  border: 1px solid #e1e6ee;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.story-card:hover {
+  border-color: #aabce6;
+}
+.story-card.selected {
+  border-color: #7398ed;
+  box-shadow: 0 0 0 2px #4779ff12;
+}
+.story-top,
+h3,
+.owners {
+  grid-column: 1 / -1;
+}
+.story-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.story-id {
+  color: #798598;
+  font-size: 10px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 600;
+}
+.badge i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+h3 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 17px;
+  font-weight: 650;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.description,
+.team-tag,
+.owner-label,
+.story-message {
+  display: none;
+}
+.owners {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.owners.with-testing {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.owner {
+  min-width: 0;
+}
+.person {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 3px 5px;
+  align-items: center;
+}
+.person > div {
+  display: contents;
+}
+.person strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 700;
+}
+.ivan {
+  background: #d9e5f3;
+  color: #446387;
+}
+.laura {
+  background: #f3dfd5;
+  color: #996450;
+}
+.tester {
+  background: #ece2fa;
+  color: #8255b1;
+}
+.status {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 3px;
+  font-size: 9px;
+  line-height: 12px;
+  background: transparent !important;
+}
+.status-icon {
+  flex-shrink: 0;
+}
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.progress-row mat-progress-bar {
+  border-radius: 8px;
+  --mat-progress-bar-track-color: #edf0f5;
+  --mat-progress-bar-active-indicator-color: currentColor;
+}
+.progress-row strong {
+  font-size: 10px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.progress-row strong span {
+  color: #8d96a6;
+}
+.story-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.story-footer button {
+  height: 24px;
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.arrow {
+  margin-left: 3px;
+}
+.blue {
+  color: #4675e8;
+  background: #edf3ff;
+}
+.amber {
+  color: #b07a20;
+  background: #fff7e7;
+}
+.purple {
+  color: #9160ce;
+  background: #f5effe;
+}
+.green {
+  color: #249873;
+  background: #eaf8f2;
+}
+.red {
+  color: #c44f5b;
+  background: #fff0f1;
+}
+.gray {
+  color: #7e899b;
+  background: #f0f2f6;
+}
+
+.real-assignees {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.assigned-label {
+  display: block;
+  font-size: 10px;
+  color: #66768c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.participants {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  min-height: 18px;
+}
+.task-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: #8691a3;
+}
+.unknown-progress {
+  font-size: 10px;
+  color: #8792a3;
+}
+
+.real-assignees app-task-specialties {
+  margin-top: 6px;
+}
+
+.story-iteration {
+  font-size: 10px;
+  color: #788299;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.bug-count {
+  font-size: 10px;
+  color: #69758a;
+}
+.bug-count.has-open-bugs {
+  color: #b13d4c;
+  font-weight: 600;
+}

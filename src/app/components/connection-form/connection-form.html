@@ -1,0 +1,54 @@
+<main class="connection-page">
+  <section class="connection-card" aria-labelledby="connection-title">
+    <div class="connection-brand">↗ FlowBoard</div>
+    <h1 id="connection-title">Conectá tu tablero</h1>
+    <p>Seguí las historias y el avance de tu equipo desde un solo lugar.</p>
+    <form (ngSubmit)="submit()">
+      <label for="board-url">Enlace de Azure DevOps</label>
+      <input
+        id="board-url"
+        name="boardUrl"
+        type="url"
+        required
+        maxlength="2048"
+        placeholder="https://dev.azure.com/organización/proyecto/_sprints/…"
+        [(ngModel)]="boardUrl"
+        [disabled]="busy"
+        autocomplete="off"
+      />
+      <label for="access-token">Personal Access Token (PAT)</label>
+      <input
+        id="access-token"
+        name="pat"
+        type="password"
+        required
+        maxlength="256"
+        [(ngModel)]="pat"
+        [disabled]="busy"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="token-help"
+      />
+      <p id="token-help" class="hint">
+        Usá un PAT de tu organización con Work Items → Read y Project and Team → Read. Para crear
+        tareas desde FlowBoard, Work Items debe tener Read &amp; write.
+      </p>
+      @if (error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+      <button type="submit" [disabled]="busy || !boardUrl.trim() || !pat.trim()">
+        {{ busy ? 'Conectando…' : 'Conectar tablero' }}
+      </button>
+    </form>
+    <p class="privacy">
+      El PAT se usa durante tu sesión y no se guarda en el navegador. La conexión permite consultar
+      los tableros a los que tenés acceso.
+    </p>
+    <a
+      href="https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Cómo crear un PAT ↗</a
+    >
+  </section>
+</main>

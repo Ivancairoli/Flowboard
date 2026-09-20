@@ -1,0 +1,40 @@
+<article class="story-card" [class.selected]="selected">
+  <div class="story-top">
+    <span class="story-id">#{{ story.id }}</span
+    ><span [class]="'badge ' + story.tone" [matTooltip]="'Estado Azure: ' + story.azureState"
+      ><i></i>{{ story.status }}</span
+    >
+  </div>
+  <h3 [matTooltip]="story.title">{{ story.title }}</h3>
+  <div class="story-iteration" [matTooltip]="story.iteration">{{ story.iteration }}</div>
+  <div class="real-assignees">
+    <span class="assigned-label">Responsable: {{ story.assignee?.fullName || 'Sin asignar' }}</span>
+    <app-task-specialties [tasks]="story.tasks" />
+  </div>
+  <div class="progress-row" [matTooltip]="story.message">
+    @if (story.progress !== null) {
+      <mat-progress-bar
+        mode="determinate"
+        [value]="story.progress"
+        [class]="story.tone"
+        [attr.aria-label]="'Tareas completadas de la historia ' + story.id"
+      />
+      <strong>{{ story.progress }}<span>%</span></strong>
+    } @else {
+      <span class="unknown-progress">Avance no disponible</span>
+    }
+  </div>
+  <div class="story-footer">
+    <span
+      class="bug-count"
+      [class.has-open-bugs]="story.openBugCount > 0"
+      [attr.aria-label]="story.openBugCount + ' bugs abiertos de ' + story.bugCount + ' en total'"
+    >
+      <span aria-hidden="true">🐞</span> {{ story.openBugCount }} abiertos ·
+      {{ story.bugCount }} total
+    </span>
+    <button mat-button (click)="storySelected.emit(story)">
+      Ver detalle <span class="arrow">↗</span>
+    </button>
+  </div>
+</article>

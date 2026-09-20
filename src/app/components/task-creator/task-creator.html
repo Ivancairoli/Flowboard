@@ -1,0 +1,278 @@
+<div class="creator-backdrop">
+  <section
+    class="creator"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="creator-title"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (keydown.escape)="!busy() && closed.emit()"
+  >
+    <header>
+      <div>
+        <p>HISTORIA #{{ story.id }} · {{ story.project }}</p>
+        <h2 id="creator-title">Crear tareas</h2>
+      </div>
+      <button
+        type="button"
+        aria-label="Cerrar creación de tareas"
+        [disabled]="busy()"
+        (click)="closed.emit()"
+      >
+        ×
+      </button>
+    </header>
+    <div class="creator-body" #creatorBody>
+      <p>{{ story.title }}</p>
+      <p class="hint">
+        Se vincularán a esta historia y heredarán su área y sprint en Azure. Crear o eliminar aquí
+        describe el trabajo a realizar; no modifica archivos.
+      </p>
+      @if (notice()) {
+        <p role="status" class="notice">{{ notice() }}</p>
+      }
+      @if (error()) {
+        <p role="alert" class="error">{{ error() }}</p>
+      }
+      @if (step === 'select') {
+        @if (editing) {
+          <h3>Configurar opciones de {{ story.project }}</h3>
+          <p class="hint">
+            Configuración local de este navegador. Base de datos usa Backend por defecto.
+          </p>
+          @for (option of editing.options; track option.id) {
+            <div class="configuration-row">
+              <label>Área<input [(ngModel)]="option.area" maxlength="60" /></label>
+              <label>Elemento<input [(ngModel)]="option.name" maxlength="100" /></label>
+              <label
+                >Etiqueta<select [(ngModel)]="option.specialty">
+                  @for (specialty of specialties; track specialty) {
+                    <option [value]="specialty">{{ specialty }}</option>
+                  }
+                </select></label
+              >
+              <button
+                type="button"
+                (click)="removeOption(option.id)"
+                [attr.aria-label]="'Quitar opción ' + option.name"
+              >
+                Quitar
+              </button>
+            </div>
+          }
+          <button type="button" (click)="addOption()" [disabled]="editing.options.length >= 60">
+            Agregar opción
+          </button>
+          <h3>Combinaciones guardadas</h3>
+          @for (preset of editing.presets; track $index) {
+            <div class="configuration-row">
+              <label>Nombre<input [(ngModel)]="preset.name" maxlength="80" /></label
+              ><button type="button" (click)="removePreset($index)">Quitar combinación</button>
+            </div>
+          }
+          <div class="actions">
+            <button type="button" (click)="editing = null">Cancelar</button
+            ><button class="primary" type="button" (click)="saveConfiguration()">
+              Guardar configuración
+            </button>
+          </div>
+        } @else {
+          <label
+            >Funcionalidad<input
+              [(ngModel)]="functionality"
+              maxlength="160"
+              placeholder="Agregar domicilio al cliente"
+          /></label>
+          <label
+            >Reglas de negocio / descripción común<textarea
+              [(ngModel)]="context"
+              maxlength="8000"
+              rows="3"
+              placeholder="Qué debe resolver el cambio y cómo validarlo"
+            ></textarea>
+          </label>
+          <label
+            >Responsable común (opcional)<input
+              [(ngModel)]="assignee"
+              maxlength="256"
+              list="task-assignees"
+              placeholder="Correo o nombre exacto en Azure"
+          /></label>
+          <datalist id="task-assignees">
+            @for (member of story.participants; track member.id) {
+              <option [value]="member.fullName"></option>
+            }
+          </datalist>
+          <h3>Combinaciones rápidas</h3>
+          <div class="presets">
+            @for (preset of config.presets; track $index) {
+              <button type="button" (click)="applyPreset(preset)">{{ preset.name }}</button>
+            }
+          </div>
+          <p class="hint">
+            Elegir una combinación reemplaza la selección actual. Podés desmarcar lo que no
+            corresponda.
+          </p>
+          @for (area of areas; track area) {
+            <fieldset>
+              <legend>{{ area }}</legend>
+              @for (option of optionsFor(area); track option.id) {
+                <div class="option-row">
+                  <label class="check"
+                    ><input type="checkbox" [(ngModel)]="selected[option.id]" />{{
+                      option.name
+                    }}</label
+                  >
+                  <select
+                    [ngModel]="action[option.id] || 'Modificar'"
+                    (ngModelChange)="action[option.id] = $event"
+                    [disabled]="!selected[option.id]"
+                    [attr.aria-label]="'Acción para ' + option.name + ' de ' + area"
+                  >
+                    @for (action of actions; track action) {
+                      <option [value]="action">{{ action }}</option>
+                    }
+                  </select>
+                  <span class="hint">{{ option.specialty }}</span>
+                </div>
+              }
+            </fieldset>
+          }
+          <div class="save-preset">
+            <label
+              >Guardar selección como combinación<input
+                [(ngModel)]="presetName"
+                maxlength="80"
+                placeholder="Nombre de la combinación" /></label
+            ><button
+              type="button"
+              (click)="savePreset()"
+              [disabled]="!presetName.trim() || !selectedCount || selectedCount > 30"
+            >
+              Guardar
+            </button>
+          </div>
+          <div class="actions">
+            <button type="button" (click)="editConfiguration()">Configurar opciones</button
+            ><button
+              class="primary"
+              type="button"
+              (click)="buildPreview()"
+              [disabled]="!functionality.trim() || !selectedCount || selectedCount > 30"
+            >
+              Revisar {{ selectedCount }} tareas
+            </button>
+          </div>
+          <p class="hint">Máximo 30 tareas por creación.</p>
+        }
+      } @else {
+        <h3>Vista previa · {{ drafts.length }} tareas</h3>
+        @if (!validDrafts) {
+          <p class="warning" role="status">
+            Incluí entre 1 y 30 tareas con títulos de 1 a 255 caracteres. Ajustá los títulos que
+            superen ese límite.
+          </p>
+        }
+        <p class="hint">
+          Sprint: {{ story.iteration }}. Revisá títulos, descripciones, etiquetas y responsables.
+          Las nuevas tareas pueden cambiar el avance y la etapa de la historia.
+        </p>
+        @if (story.tasks.length) {
+          <details>
+            <summary>Ver {{ story.tasks.length }} tareas existentes</summary>
+            @for (task of story.tasks; track task.id) {
+              <p>#{{ task.id }} · {{ task.title }} · {{ task.state }}</p>
+            }
+          </details>
+        }
+        <fieldset [disabled]="busy() || !!submitted">
+          @for (draft of drafts; track draft.id) {
+            <article class="draft">
+              <label>Título<input [(ngModel)]="draft.title" maxlength="255" required /></label>
+              <label
+                >Descripción<textarea
+                  [(ngModel)]="draft.description"
+                  maxlength="10000"
+                  rows="3"
+                ></textarea>
+              </label>
+              <div class="configuration-row">
+                <label
+                  >Etiqueta<select [(ngModel)]="draft.specialty">
+                    @for (specialty of specialties; track specialty) {
+                      <option [value]="specialty">{{ specialty }}</option>
+                    }
+                  </select></label
+                ><label
+                  >Responsable<input
+                    [(ngModel)]="draft.assignee"
+                    maxlength="256"
+                    placeholder="Sin asignar / correo o nombre exacto"
+                /></label>
+              </div>
+              @if (duplicate(draft); as warning) {
+                <p class="warning">{{ warning }}</p>
+              }
+              <button type="button" (click)="removeDraft(draft.id)">Quitar propuesta</button>
+            </article>
+          }
+        </fieldset>
+        <p class="hint">
+          Para crear necesitás un PAT con Work Items → Read &amp; write y permisos de creación en el
+          área de la historia.
+        </p>
+        @if (results().length) {
+          <section aria-label="Resultado de creación" aria-live="polite">
+            <h3>Resultado</h3>
+            @for (result of results(); track result.draftId) {
+              <div class="result">
+                <strong>{{ resultLabel(result) }}</strong> · {{ result.title }}
+                @if (result.url) {
+                  <a [href]="result.url" target="_blank" rel="noopener noreferrer"
+                    >#{{ result.id }} en Azure ↗</a
+                  >
+                }
+                @if (result.error) {
+                  <p class="warning">{{ result.error }}</p>
+                }
+              </div>
+            }
+          </section>
+        }
+        @if (submitted) {
+          <p class="hint">
+            La propuesta enviada queda bloqueada para conservar su identidad. “Consultar /
+            continuar” recupera tareas ya creadas y envía las pendientes; no repite resultados
+            inciertos automáticamente.
+          </p>
+        }
+        <div class="actions">
+          @if (!submitted) {
+            <button type="button" (click)="backToSelection()" [disabled]="busy()">
+              Volver a selección
+            </button>
+          }
+          @if (canStartAgain) {
+            <button type="button" (click)="startAgain()" [disabled]="busy()">
+              Preparar / corregir tareas
+            </button>
+          }
+          <button
+            class="primary"
+            type="button"
+            (click)="submit()"
+            [disabled]="busy() || !validDrafts"
+          >
+            {{
+              busy()
+                ? 'Procesando…'
+                : submitted
+                  ? 'Consultar / continuar solicitud'
+                  : 'Confirmar y crear ' + drafts.length + ' tareas en Azure'
+            }}
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+</div>

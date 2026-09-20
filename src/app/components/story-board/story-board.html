@@ -1,0 +1,56 @@
+<section class="board" aria-label="Historias seleccionadas">
+  <div class="section-heading">
+    <h1>
+      Historias seleccionadas <span>{{ total }}</span>
+    </h1>
+    <span class="demo-label">Azure DevOps · Historias y tareas</span>
+  </div>
+  <app-story-filters [(query)]="query" [(status)]="status" [(owner)]="owner" [owners]="owners" />
+
+  <div
+    [style.grid-template-columns]="'repeat(' + columns.length + ', minmax(280px, 1fr))'"
+    class="story-list"
+    tabindex="0"
+    aria-label="Tablero de historias por etapa"
+  >
+    @for (column of columns; track column.name; let index = $index) {
+      <section
+        class="stage-column"
+        [attr.aria-label]="column.name"
+        [style.--stage-color]="column.color"
+        [style.--stage-background]="column.background"
+      >
+        <header class="stage-heading">
+          <span class="stage-number">{{ index + 1 }}</span>
+          <h3>{{ column.name }}</h3>
+          <span class="stage-count" [attr.aria-label]="column.stories.length + ' historias'">{{
+            column.stories.length
+          }}</span>
+        </header>
+        <div class="stage-stories" tabindex="0" [attr.aria-label]="'Historias: ' + column.name">
+          @for (story of column.stories; track story.id) {
+            <app-story-card
+              [story]="story"
+              [selected]="selected?.id === story.id"
+              (storySelected)="storySelected.emit($event)"
+            />
+          } @empty {
+            <p class="stage-empty">
+              {{ !hasLoaded ? 'Esperando conexión' : 'Sin historias en esta etapa' }}
+            </p>
+          }
+        </div>
+      </section>
+    }
+  </div>
+  @if (hasLoaded && !loading && stories.length === 0) {
+    <div class="empty">
+      <h3>No encontramos historias</h3>
+      <p>Probá con otra búsqueda o cambiá los filtros.</p>
+      <button mat-button (click)="filtersCleared.emit()">Limpiar filtros</button>
+    </div>
+  }
+  <div class="board-footer">
+    <span><i></i> Datos de los sprints</span><span>{{ stories.length }} historias en esta vista</span>
+  </div>
+</section>
