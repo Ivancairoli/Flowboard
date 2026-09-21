@@ -42,7 +42,7 @@ No se desplegó ningún servicio como parte de este cambio. Para varias réplica
 
 ## Datos y actualización
 
-El servicio resuelve la ruta de la iteración dentro del equipo y consulta sus elementos. Recupera historias y tareas relacionadas en lotes de hasta 200 elementos. Soporta historias de tipo User Story, Product Backlog Item, Issue, Requirement y Bug, y tareas hijas directas de tipo Task. Las tareas vinculadas pueden pertenecer a otra iteración y siguen formando parte del avance de su historia. Los tipos personalizados requieren adaptar la clasificación en `server/azure.mjs`.
+El servicio resuelve la ruta de la iteración dentro del equipo y consulta sus elementos. Recupera historias y tareas relacionadas en lotes de hasta 200 elementos. Soporta historias de tipo User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug y Error, y tareas hijas directas de tipo Task o Tarea. Los nombres se reconocen sin distinguir mayúsculas y minúsculas; los estados se consultan con el nombre original del tipo en Azure. Las tareas vinculadas pueden pertenecer a otra iteración y siguen formando parte del avance de su historia. Los tipos personalizados requieren adaptar la clasificación en `server/azure.mjs`.
 
 Las tarjetas muestran el responsable de la HU y los participantes asignados a sus tareas; no se deducen roles de frontend, backend o testing por el nombre del desarrollador. El detalle muestra cada tarea con su estado y responsable reales. Las descripciones se presentan como texto, sin ejecutar HTML de Azure.
 
@@ -88,7 +88,7 @@ Referencia: [Crear work items en Azure DevOps](https://learn.microsoft.com/en-us
 
 ## Bugs vinculados
 
-Cada tarjeta muestra los bugs abiertos y el total; el detalle lista su identificador, título, estado y enlace a Azure. Se incluyen elementos de tipo Bug vinculados directamente a la historia como hijos o mediante la relación Related, incluso fuera de los sprints seleccionados. Un mismo bug se cuenta una sola vez por historia. No se recorren vínculos indirectos a través de tareas ni relaciones de dependencia.
+Cada tarjeta muestra los bugs abiertos y el total; el detalle lista su identificador, título, estado y enlace a Azure. Se incluyen elementos de tipo Bug o Error vinculados directamente a la historia como hijos o mediante la relación Related, incluso fuera de los sprints seleccionados. Un mismo bug se cuenta una sola vez por historia. No se recorren vínculos indirectos a través de tareas ni relaciones de dependencia.
 
 Los bugs eliminados (categoría Removed) no cuentan. Solo Completed se considera cerrado; Resolved y estados desconocidos siguen contando como abiertos. Los bugs se muestran por separado y no modifican el porcentaje de tareas ni la etapa de la historia. Los bugs que ya aparecen como elementos del sprint mantienen sus tarjetas independientes.
 
