@@ -44,6 +44,75 @@ const item = (id, type, state, extra = {}) => ({
 const json = (value) =>
   new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 
+test('loads Spanish and mixed work item types using their original state metadata', async () => {
+  for (const types of [
+    ['Caso de usuario', 'Tarea', 'Error'],
+    ['CASO DE USUARIO', 'tarea', 'ERROR'],
+    ['Caso de usuario', 'Task', 'Bug'],
+    ['User Story', 'Tarea', 'Error'],
+  ]) {
+    const [storyType, taskType, bugType] = types;
+    const records = [
+      item(1, storyType, 'Activo'),
+      item(2, taskType, 'Cerrado', { 'System.Tags': 'Backend' }),
+      item(3, taskType, 'Nuevo', { 'System.Tags': 'Testing' }),
+      item(4, bugType, 'Activo'),
+      item(5, bugType, 'Cerrado'),
+      item(6, bugType, 'Eliminado'),
+      item(7, taskType, 'Eliminado'),
+      item(8, 'Epic', 'Activo'),
+    ];
+    records[0].relations = [2, 3, 4, 5, 6, 7, 8].map((id) => ({
+      rel: id === 5 ? 'System.LinkTypes.Related' : 'System.LinkTypes.Hierarchy-Forward',
+      url: `${config.projectUrl}/_apis/wit/workItems/${id}`,
+    }));
+    const queriedTypes = new Set();
+    const load = createAzureClient(config, stateMap, async (url, options) => {
+      if (url.includes('/iterations?'))
+        return json({ value: [{ id: 's', path: config.iteration, name: 'Sprint 1' }] });
+      if (url.includes('/workitems?'))
+        return json({ workItemRelations: [1, 4, 8].map((id) => ({ target: { id } })) });
+      if (url.includes('/workitemsbatch?'))
+        return json({
+          value: JSON.parse(options.body).ids.map((id) => records.find((r) => r.id === id)),
+        });
+      const match = url.match(/\/workitemtypes\/([^/]+)\/states\?/);
+      if (match) {
+        queriedTypes.add(decodeURIComponent(match[1]));
+        return json({
+          value: [
+            { name: 'Activo', category: 'InProgress' },
+            { name: 'Cerrado', category: 'Completed' },
+            { name: 'Nuevo', category: 'Proposed' },
+            { name: 'Eliminado', category: 'Removed' },
+          ],
+        });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+    const result = await load();
+    assert.deepEqual(result.warnings, []);
+    assert.deepEqual(
+      result.stories.map((story) => story.id),
+      [1, 4],
+    );
+    const story = result.stories[0];
+    assert.deepEqual(
+      story.tasks.map((task) => task.id),
+      [2, 3],
+    );
+    assert.equal(story.progress, 50);
+    assert.equal(story.stage, 'Para Testing');
+    assert.deepEqual(
+      story.bugs.map((bug) => bug.id),
+      [4, 5],
+    );
+    assert.equal(story.bugCount, 2);
+    assert.equal(story.openBugCount, 1);
+    assert.deepEqual(queriedTypes, new Set([...types, 'Epic']));
+  }
+});
+
 test('maps actual assignees, completed tasks, missing data and unknown states', () => {
   const story = item(1, 'User Story', 'Active', {
     'System.AssignedTo': { id: 'a', displayName: 'Ana Pérez' },

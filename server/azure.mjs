@@ -16,7 +16,17 @@ const normalize = (value) =>
 const iterationKey = (value) => normalize(value).replaceAll('/', '\\');
 const stages = ['Sin comenzar', 'En desarrollo', 'Para Testing', 'En testing', 'Finalizadas'];
 const tones = ['gray', 'amber', 'blue', 'purple', 'green'];
-const storyTypes = new Set(['user story', 'product backlog item', 'issue', 'requirement', 'bug']);
+const storyTypes = new Set([
+  'user story',
+  'caso de usuario',
+  'product backlog item',
+  'issue',
+  'requirement',
+  'bug',
+  'error',
+]);
+const taskTypes = new Set(['task', 'tarea']);
+const bugTypes = new Set(['bug', 'error']);
 
 export function member(value) {
   if (!value) return null;
@@ -281,14 +291,16 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
           root,
           childIds(root)
             .map((id) => byId.get(id))
-            .filter((child) => child && normalize(child.fields['System.WorkItemType']) === 'task'),
+            .filter(
+              (child) => child && taskTypes.has(normalize(child.fields['System.WorkItemType'])),
+            ),
           statesByType,
           { ...config, projectUrl },
           stateMap,
           bugIds(root)
             .map((id) => byId.get(id))
             .filter(
-              (linked) => linked && normalize(linked.fields['System.WorkItemType']) === 'bug',
+              (linked) => linked && bugTypes.has(normalize(linked.fields['System.WorkItemType'])),
             ),
         ),
       );
@@ -299,7 +311,7 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
       );
     if (items.length && !roots.length)
       warnings.push(
-        'El sprint tiene elementos pero ninguno es User Story, Product Backlog Item, Issue, Requirement o Bug. Revisá los tipos de trabajo del proyecto.',
+        'El sprint tiene elementos pero ninguno es User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug o Error. Revisá los tipos de trabajo del proyecto.',
       );
     return {
       stories,
