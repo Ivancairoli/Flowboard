@@ -1,6 +1,8 @@
 {
   "name": "flowboard",
   "version": "0.0.0",
+  "author": "Iván Cairoli",
+  "license": "MIT",
   "scripts": {
     "ng": "ng",
     "start": "node scripts/dev.mjs",

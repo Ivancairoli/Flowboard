@@ -2,6 +2,12 @@
 
 FlowBoard facilita el seguimiento de historias de usuario de Azure DevOps con responsables, estados y tareas reales. Cada persona ingresa el enlace de su tablero y su PAT en la pantalla de conexión. Un servicio Node.js consulta Azure, permite crear tareas desde plantillas con confirmación y mantiene sesiones y cachés independientes.
 
+## Autoría y licencia
+
+FlowBoard es un proyecto open source creado originalmente por **Iván Cairoli**.
+
+Copyright (c) 2026 Iván Cairoli. Distribuido bajo la [licencia MIT](LICENSE), que permite usar, modificar y distribuir el software, incluso comercialmente, conservando el aviso de copyright y la licencia en las copias o partes sustanciales. Las dependencias mantienen sus respectivas licencias.
+
 ## Documentación del proyecto
 
 - [Objetivo del sistema](docs/objetivo-del-sistema.md): propósito, usuarios, funcionamiento esperado y alcance inicial.

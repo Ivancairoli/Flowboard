@@ -133,10 +133,15 @@ h1 {
 }
 .board-footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   justify-content: space-between;
   color: #a5adba;
   font-size: 9px;
   padding: 7px 0;
+}
+.creator-credit {
+  color: #66768c;
 }
 .board-footer i {
   color: #40b38b;
