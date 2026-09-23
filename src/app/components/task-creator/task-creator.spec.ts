@@ -58,6 +58,31 @@ describe('Task creator', () => {
     expect(store.createTasks.mock.calls[0][0].tasks).toHaveLength(3);
     expect(c.submitted?.tasks[0].title).toBe('Modificar modelo Cliente');
   });
+  it('edits and validates estimated hours before submission', async () => {
+    const fixture = setup();
+    const c = fixture.componentInstance;
+    c.selected['be-0'] = true;
+    c.buildPreview();
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+    const hours = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    expect(c.drafts[0].estimatedHours).toBe(0);
+    hours.value = '4.5';
+    hours.dispatchEvent(new Event('input', { bubbles: true }));
+    await fixture.whenStable();
+    expect(c.drafts[0].estimatedHours).toBe(4.5);
+    expect(fixture.nativeElement.textContent).toContain('Restantes: 4.5 h · Completadas: 0 h');
+    for (const invalid of [-1, null, NaN, Infinity]) {
+      c.drafts[0].estimatedHours = invalid;
+      expect(c.validDrafts).toBe(false);
+      await c.submit();
+    }
+    expect(store.createTasks).not.toHaveBeenCalled();
+    c.drafts[0].estimatedHours = 4.5;
+    await c.submit();
+    expect(store.createTasks.mock.calls[0][0].tasks[0].estimatedHours).toBe(4.5);
+  });
+
   it('retains operation IDs across uncertain retry and reopening the dialog', async () => {
     const fixture = setup();
     const c = fixture.componentInstance;

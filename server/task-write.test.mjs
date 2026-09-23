@@ -83,6 +83,35 @@ test('creation inherits scope, safely renders descriptions, sets specialty and p
   assert.equal(JSON.stringify(result).includes('private-fake-pat'), false);
 });
 
+test('initializes effort per task without rewriting hours on retry', async () => {
+  const { load, writes } = fixture();
+  const payload = input(
+    [0, 4, 1.5].map((estimatedHours) => ({
+      ...task(`Tarea de ${estimatedHours} horas`),
+      estimatedHours,
+    })),
+  );
+  await load.createTasks(payload);
+  for (const [index, patch] of writes.entries()) {
+    const fields = Object.fromEntries(patch.map((op) => [op.path, op.value]));
+    assert.equal(
+      fields['/fields/Microsoft.VSTS.Scheduling.OriginalEstimate'],
+      payload.tasks[index].estimatedHours,
+    );
+    assert.equal(
+      fields['/fields/Microsoft.VSTS.Scheduling.RemainingWork'],
+      payload.tasks[index].estimatedHours,
+    );
+    assert.equal(fields['/fields/Microsoft.VSTS.Scheduling.CompletedWork'], 0);
+  }
+  await load.createTasks(payload);
+  assert.equal(writes.length, 3);
+  const changed = structuredClone(payload);
+  changed.tasks[0].estimatedHours = 8;
+  assert.equal((await load.createTasks(changed)).results[0].status, 'failed');
+  assert.equal(writes.length, 3);
+});
+
 test('rejects unconfirmed, oversized, duplicate IDs and invalid drafts before writing', () => {
   const valid = input();
   assert.equal(validateTaskRequest(valid), valid);
@@ -102,6 +131,7 @@ test('rejects unconfirmed, oversized, duplicate IDs and invalid drafts before wr
       { assignee: '\r\n' },
       { description: 'x'.repeat(10001) },
       { id: 'invalid' },
+      ...[-1, null, '4', NaN, Infinity].map((estimatedHours) => ({ estimatedHours })),
     ].map((change) => ({ ...valid, tasks: [{ ...valid.tasks[0], ...change }] })),
   ]) {
     assert.throws(() => validateTaskRequest(invalid), { code: 'INVALID_TASKS' });

@@ -5,6 +5,7 @@ import { parseEnv } from 'node:util';
 import { createAzureClient, ConnectionError } from './azure.mjs';
 import { createSessions, readJson } from './session.mjs';
 import { validateTaskRequest } from './task-write.mjs';
+import { validateHoursRequest } from './task-hours.mjs';
 import { createStaticHandler } from './static.mjs';
 
 const envPath = fileURLToPath(new URL('../.env', import.meta.url));
@@ -108,7 +109,11 @@ export function createServer(options = {}) {
         });
       }
     }
-    if (url.pathname === '/api/tasks' && req.method === 'POST' && !url.search) {
+    if (
+      ['/api/tasks', '/api/task-hours'].includes(url.pathname) &&
+      req.method === 'POST' &&
+      !url.search
+    ) {
       const session = sessions.get(req);
       if (!session) return send(401, { error: 'Tu sesión terminó. Volvé a conectarte.' });
       session.writeWindow ||= Date.now();
@@ -118,10 +123,15 @@ export function createServer(options = {}) {
       }
       session.writes = (session.writes || 0) + 1;
       if (session.writes > 10)
-        return send(429, { error: 'Demasiadas solicitudes de creación. Esperá un minuto.' });
+        return send(429, { error: 'Demasiadas solicitudes de escritura. Esperá un minuto.' });
       try {
-        const input = validateTaskRequest(await readJson(req, 350000));
-        const result = await session.load.createTasks(input);
+        const hours = url.pathname === '/api/task-hours';
+        const input = (hours ? validateHoursRequest : validateTaskRequest)(
+          await readJson(req, hours ? 2000 : 350000),
+        );
+        const result = await (hours
+          ? session.load.registerHours(input)
+          : session.load.createTasks(input));
         return send(200, result);
       } catch (error) {
         return send(error instanceof ConnectionError ? error.status : 500, {

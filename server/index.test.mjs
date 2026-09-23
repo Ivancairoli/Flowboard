@@ -12,6 +12,7 @@ async function withServer(load, run, options = {}) {
         teams: async () => ({ value: [{ id: 't', name: 'Pages Team' }] }),
         sprints: async () => ({ value: [] }),
         createTasks: load.createTasks,
+        registerHours: load.registerHours,
       }),
     ...options,
   });
@@ -131,6 +132,48 @@ test('task creation requires session, confirmation and same origin and invalidat
     assert.equal(writes, 1);
     await call();
     assert.equal(reads, 2);
+  });
+});
+
+test('hours registration requires session, origin and confirmation and clears cached board data', async () => {
+  let reads = 0,
+    writes = 0;
+  const load = Object.assign(
+    async () => {
+      reads++;
+      return { stories: [] };
+    },
+    {
+      registerHours: async () => {
+        writes++;
+        return { taskId: 2, completedHours: 4 };
+      },
+    },
+  );
+  const payload = { project: 'Pages', storyId: 1, taskId: 2, confirmed: true };
+  await withServer(load, async (call) => {
+    assert.equal((await call('/api/task-hours', { cookie: '' }, 'POST', payload)).status, 401);
+    assert.equal(
+      (await call('/api/task-hours', { origin: 'https://foreign.example' }, 'POST', payload))
+        .status,
+      403,
+    );
+    assert.equal(
+      (await call('/api/task-hours', { 'x-flowboard-request': '' }, 'POST', payload)).status,
+      403,
+    );
+    assert.equal(
+      (await call('/api/task-hours', {}, 'POST', { ...payload, confirmed: false })).status,
+      400,
+    );
+    assert.equal(writes, 0);
+    await call();
+    await call();
+    assert.equal(reads, 1);
+    assert.equal((await call('/api/task-hours', {}, 'POST', payload)).body.completedHours, 4);
+    await call();
+    assert.equal(reads, 2);
+    assert.equal(writes, 1);
   });
 });
 

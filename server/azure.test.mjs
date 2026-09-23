@@ -44,6 +44,227 @@ const item = (id, type, state, extra = {}) => ({
 const json = (value) =>
   new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 
+test('loads Spanish and mixed work item types using their original state metadata', async () => {
+  for (const types of [
+    ['Caso de usuario', 'Tarea', 'Error'],
+    ['CASO DE USUARIO', 'tarea', 'ERROR'],
+    ['Caso de usuario', 'Task', 'Bug'],
+    ['User Story', 'Tarea', 'Error'],
+  ]) {
+    const [storyType, taskType, bugType] = types;
+    const records = [
+      item(1, storyType, 'Activo'),
+      item(2, taskType, 'Cerrado', { 'System.Tags': 'Backend' }),
+      item(3, taskType, 'Nuevo', { 'System.Tags': 'Testing' }),
+      item(4, bugType, 'Activo'),
+      item(5, bugType, 'Cerrado'),
+      item(6, bugType, 'Eliminado'),
+      item(7, taskType, 'Eliminado'),
+      item(8, 'Epic', 'Activo'),
+    ];
+    records[0].relations = [2, 3, 4, 5, 6, 7, 8].map((id) => ({
+      rel: id === 5 ? 'System.LinkTypes.Related' : 'System.LinkTypes.Hierarchy-Forward',
+      url: `${config.projectUrl}/_apis/wit/workItems/${id}`,
+    }));
+    const queriedTypes = new Set();
+    const load = createAzureClient(config, stateMap, async (url, options) => {
+      if (url.includes('/iterations?'))
+        return json({ value: [{ id: 's', path: config.iteration, name: 'Sprint 1' }] });
+      if (url.includes('/workitems?'))
+        return json({ workItemRelations: [1, 4, 8].map((id) => ({ target: { id } })) });
+      if (url.includes('/workitemsbatch?'))
+        return json({
+          value: JSON.parse(options.body).ids.map((id) => records.find((r) => r.id === id)),
+        });
+      const match = url.match(/\/workitemtypes\/([^/]+)\/states\?/);
+      if (match) {
+        queriedTypes.add(decodeURIComponent(match[1]));
+        return json({
+          value: [
+            { name: 'Activo', category: 'InProgress' },
+            { name: 'Cerrado', category: 'Completed' },
+            { name: 'Nuevo', category: 'Proposed' },
+            { name: 'Eliminado', category: 'Removed' },
+          ],
+        });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+    const result = await load();
+    assert.deepEqual(result.warnings, []);
+    assert.deepEqual(
+      result.stories.map((story) => story.id),
+      [1],
+    );
+    const story = result.stories[0];
+    assert.deepEqual(
+      story.tasks.map((task) => task.id),
+      [2, 3],
+    );
+    assert.equal(story.progress, 50);
+    assert.equal(story.stage, 'Para Testing');
+    assert.deepEqual(
+      story.bugs.map((bug) => bug.id),
+      [4, 5],
+    );
+    assert.equal(story.bugCount, 2);
+    assert.equal(story.openBugCount, 1);
+    assert.deepEqual(queriedTypes, new Set([...types, 'Epic']));
+  }
+});
+
+test('groups sprint bugs under their direct story, including stories outside the sprint', async () => {
+  for (const rel of ['System.LinkTypes.Hierarchy-Reverse', 'System.LinkTypes.Related']) {
+    for (const storyInSprint of [true, false]) {
+      const story = item(253381, 'Caso de usuario', 'Closed');
+      const bug = item(263804, 'Error', 'Closed');
+      const task = item(2, 'Task', 'Done', { 'System.Tags': 'Testing' });
+      const standalone = item(3, 'Bug', 'Active');
+      const link = (id, type) => ({
+        rel: type,
+        url: `${config.projectUrl}/_apis/wit/workItems/${id}`,
+      });
+      bug.relations = [link(story.id, rel)];
+      story.relations = [
+        link(
+          bug.id,
+          rel === 'System.LinkTypes.Related' ? rel : 'System.LinkTypes.Hierarchy-Forward',
+        ),
+        link(task.id, 'System.LinkTypes.Hierarchy-Forward'),
+      ];
+      const records = [story, bug, task, standalone];
+      const load = createAzureClient(config, stateMap, async (url, options) => {
+        if (url.includes('/iterations?'))
+          return json({ value: [{ id: 's', path: config.iteration, name: 'Sprint 1' }] });
+        if (url.includes('/workitems?'))
+          return json({
+            workItemRelations: (storyInSprint ? [story, bug, standalone] : [bug, standalone]).map(
+              ({ id }) => ({ target: { id } }),
+            ),
+          });
+        if (url.includes('/workitemsbatch?'))
+          return json({
+            value: JSON.parse(options.body).ids.map((id) => records.find((r) => r.id === id)),
+          });
+        if (url.includes('/states?'))
+          return json({
+            value: [
+              { name: 'Closed', category: 'Completed' },
+              { name: 'Done', category: 'Completed' },
+              { name: 'Active', category: 'InProgress' },
+            ],
+          });
+        throw new Error(`Unexpected URL: ${url}`);
+      });
+      const result = await load();
+      assert.deepEqual(
+        new Set(result.stories.map((s) => s.id)),
+        new Set([story.id, standalone.id]),
+      );
+      const mapped = result.stories.find((s) => s.id === story.id);
+      assert.equal(mapped.stage, 'Finalizadas');
+      assert.equal(mapped.progress, 100);
+      assert.deepEqual(
+        mapped.bugs.map((b) => b.id),
+        [bug.id],
+      );
+      assert.equal(mapped.bugCount, 1);
+      assert.equal(mapped.openBugCount, 0);
+    }
+  }
+});
+
+test('PSprint carries only stories from the immediate previous sprint into the selected current sprint', async () => {
+  const iteration = (id, start, finish, timeFrame) => ({
+    id,
+    name: id,
+    path: `Pages/${id}`,
+    attributes: {
+      startDate: `2026-09-${start}T00:00:00Z`,
+      finishDate: `2026-09-${finish}T00:00:00Z`,
+      timeFrame,
+    },
+  });
+  const iterations = [
+    iteration('current', '21', '30', 'current'),
+    iteration('old', '01', '10', 'past'),
+    iteration('previous', '11', '20', 'past'),
+  ];
+  const story = (id, sprint, tags, type = 'User Story', state = 'Active') =>
+    item(id, type, state, {
+      'System.IterationPath': `Pages/${sprint}`,
+      'System.Tags': tags,
+    });
+  const records = [
+    story(1, 'current', ''),
+    story(2, 'previous', 'Urgente; pSpRiNt '),
+    story(3, 'previous', ''),
+    story(4, 'old', 'PSprint'),
+    story(5, 'previous', 'PSprint pendiente'),
+    story(6, 'previous', 'PSprint', 'Bug'),
+    story(7, 'previous', 'PSprint', 'User Story', 'Removed'),
+    story(8, 'previous', 'PSprint', 'Task'),
+    item(9, 'Task', 'Active', { 'System.Tags': 'Testing' }),
+  ];
+  records[1].relations = [
+    {
+      rel: 'System.LinkTypes.Hierarchy-Forward',
+      url: `${config.projectUrl}/_apis/wit/workItems/9`,
+    },
+  ];
+  for (const selection of [['current'], ['current', 'previous'], ['previous']]) {
+    const queried = [];
+    const load = createAzureClient(
+      { ...config, iterationIds: selection },
+      stateMap,
+      async (url, options) => {
+        if (url.includes('/iterations?')) return json({ value: iterations });
+        const match = url.match(/\/iterations\/([^/]+)\/workitems\?/);
+        if (match) {
+          queried.push(match[1]);
+          const ids = match[1] === 'current' ? [1] : [2, 3, 4, 5, 6, 7, 8];
+          return json({ workItemRelations: ids.map((id) => ({ target: { id } })) });
+        }
+        if (url.includes('/workitemsbatch?'))
+          return json({
+            value: JSON.parse(options.body).ids.map((id) => records.find((r) => r.id === id)),
+          });
+        if (url.includes('/states?'))
+          return json({
+            value: [
+              { name: 'Active', category: 'InProgress' },
+              { name: 'Removed', category: 'Removed' },
+            ],
+          });
+        throw new Error(`Unexpected URL: ${url}`);
+      },
+    );
+    const result = await load();
+    assert.ok(!queried.includes('old'));
+    assert.equal(queried.filter((id) => id === 'previous').length, 1);
+    assert.equal(new Set(result.stories.map((s) => s.id)).size, result.stories.length);
+    if (selection.includes('current')) {
+      assert.equal(result.stories[0].id, 2);
+      assert.deepEqual(result.stories[0].carryover, {
+        sprint: 'previous',
+        iteration: 'Pages/previous',
+      });
+      assert.equal(result.stories[0].stage, 'Testeando');
+      assert.deepEqual(
+        result.context.sprints.map((s) => s.id),
+        selection,
+      );
+      if (selection.length === 1)
+        assert.deepEqual(
+          result.stories.map((s) => s.id),
+          [2, 1],
+        );
+    } else {
+      assert.ok(result.stories.every((s) => !s.carryover));
+    }
+  }
+});
+
 test('maps actual assignees, completed tasks, missing data and unknown states', () => {
   const story = item(1, 'User Story', 'Active', {
     'System.AssignedTo': { id: 'a', displayName: 'Ana Pérez' },
@@ -125,11 +346,11 @@ test('testing tasks drive validation and completion, including reopened tasks', 
     assert.equal(map(development).stage, 'Para Testing');
     assert.equal(map([...development, task(4, 'New', 'Testing')]).stage, 'Para Testing');
     for (const state of ['Active', 'Resolved']) {
-      assert.equal(map([...development, task(4, state, 'Testing')]).stage, 'En testing');
+      assert.equal(map([...development, task(4, state, 'Testing')]).stage, 'Testeando');
     }
     assert.equal(
       map([...development, task(4, 'Done', 'Testing'), task(5, 'New', 'Testing')]).stage,
-      'En testing',
+      'Testeando',
     );
     const finished = map([...development, task(4, 'Done', 'Testing')]);
     assert.equal(finished.stage, 'Finalizadas');
@@ -138,10 +359,10 @@ test('testing tasks drive validation and completion, including reopened tasks', 
     assert.equal(finished.progress, 100);
     assert.equal(
       map([...development, task(4, 'Done', 'Testing'), task(5, 'Active', 'Backend')]).stage,
-      'En testing',
+      'Testeando',
     );
     assert.equal(map([task(4, 'New', 'Testing')]).stage, 'Sin comenzar');
-    assert.equal(map([task(4, 'Active', 'Testing')]).stage, 'En testing');
+    assert.equal(map([task(4, 'Active', 'Testing')]).stage, 'Testeando');
     assert.equal(map([task(4, 'Done', 'Testing')]).stage, 'Finalizadas');
     assert.equal(map([...development, task(4, 'Removed', 'Testing')]).stage, 'Para Testing');
   }
@@ -153,9 +374,12 @@ test('deployment tag gates testing independently of task state and is read only 
   const development = [task(2, 'Done', 'Frontend'), task(3, 'Done', 'Backend')];
   const map = (tasks) => mapStory(root, tasks, states, config, stateMap);
   for (const state of ['New', 'Active', 'Resolved']) {
-    assert.equal(map([...development, task(4, state, 'Testing')]).stage, 'Para Testing');
+    assert.equal(
+      map([...development, task(4, state, 'Testing')]).stage,
+      state === 'New' ? 'Para Testing' : 'Testeando',
+    );
     const deployed = map([...development, task(4, state, 'Testing; En Testing')]);
-    assert.equal(deployed.stage, 'En testing');
+    assert.equal(deployed.stage, state === 'New' ? 'En testing' : 'Testeando');
     assert.equal(deployed.tasks[2].deployedToTesting, true);
     assert.equal(deployed.progress, 67);
   }
@@ -163,7 +387,7 @@ test('deployment tag gates testing independently of task state and is read only 
     assert.equal(map([...development, task(4, 'New', tags)]).stage, 'En testing');
   }
   for (const tags of ['Testing', 'Testing; En Testing pendiente', 'Testing; Pre En Testing']) {
-    assert.equal(map([...development, task(4, 'Active', tags)]).stage, 'Para Testing');
+    assert.equal(map([...development, task(4, 'Active', tags)]).stage, 'Testeando');
   }
   for (const tags of [
     'Frontend; En Testing',

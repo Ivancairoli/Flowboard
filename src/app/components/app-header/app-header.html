@@ -12,11 +12,35 @@
         [disabled]="busy || !projects.length"
         (selectionChange)="projectChange.emit($event.value)"
       >
-        @for (item of projects; track item.id) {
-          <mat-option [value]="item.name">{{ item.name }}</mat-option>
+        <mat-select-trigger>
+          @for (item of projects; track item.id) {
+            @if (item.name === project) {
+              {{ preference(item).favorite ? '★ ' : '' }}{{ projectLabel(item) }}
+            }
+          }
+        </mat-select-trigger>
+        @for (item of orderedProjects; track item.id) {
+          <mat-option [value]="item.name">
+            {{ preference(item).favorite ? '★ ' : '' }}{{ projectLabel(item) }}
+            @if (preference(item).alias) {
+              <small> · {{ item.name }}</small>
+            }
+          </mat-option>
         }
       </mat-select>
     </div>
+    <button
+      class="project-preferences"
+      type="button"
+      aria-label="Personalizar proyectos"
+      title="Alias y favoritos"
+      [attr.aria-expanded]="personalizing"
+      aria-controls="project-preferences"
+      [disabled]="!organization || !projects.length"
+      (click)="personalizing = !personalizing"
+    >
+      ★ ✎
+    </button>
     <div class="context-select">
       <mat-select
         aria-label="Equipo"
@@ -67,3 +91,48 @@
     Cerrar sesión
   </button>
 </header>
+@if (personalizing) {
+  <section
+    class="project-preferences-panel"
+    id="project-preferences"
+    aria-label="Alias y favoritos"
+  >
+    <div class="preferences-heading">
+      <h2>Alias y favoritos</h2>
+      <button type="button" (click)="personalizing = false">Cerrar</button>
+    </div>
+    <p>
+      Guardados en este navegador para {{ organization }}. Dejá el alias vacío para usar el nombre
+      original.
+    </p>
+    @for (item of projects; track item.id) {
+      <div class="project-preference-row">
+        <button
+          type="button"
+          [class.favorite]="preference(item).favorite"
+          [attr.aria-label]="'Favorito: ' + item.name"
+          [attr.aria-pressed]="preference(item).favorite"
+          (click)="savePreference(item, { favorite: !preference(item).favorite })"
+        >
+          {{ preference(item).favorite ? '★' : '☆' }}
+        </button>
+        <label [for]="'alias-' + item.id">{{ item.name }}</label>
+        <input
+          #alias
+          [id]="'alias-' + item.id"
+          [attr.aria-label]="'Alias de ' + item.name"
+          [value]="preference(item).alias"
+          maxlength="80"
+          placeholder="Nombre personalizado"
+          (keydown.enter)="savePreference(item, { alias: alias.value })"
+        />
+        <button type="button" (click)="savePreference(item, { alias: alias.value })">
+          Guardar alias
+        </button>
+      </div>
+    }
+  </section>
+}
+@if (preferenceError) {
+  <p class="preference-error" role="alert">{{ preferenceError }}</p>
+}

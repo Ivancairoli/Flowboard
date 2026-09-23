@@ -8,12 +8,15 @@
   <app-story-filters [(query)]="query" [(status)]="status" [(owner)]="owner" [owners]="owners" />
 
   <div
-    [style.grid-template-columns]="'repeat(' + columns.length + ', minmax(280px, 1fr))'"
+    [style.grid-template-columns]="
+      status() === 'Todos' ? 'repeat(' + columns.length + ', minmax(280px, 1fr))' : 'minmax(0, 1fr)'
+    "
     class="story-list"
+    [class.filtered-state]="status() !== 'Todos'"
     tabindex="0"
     aria-label="Tablero de historias por etapa"
   >
-    @for (column of columns; track column.name; let index = $index) {
+    @for (column of columns; track column.name) {
       <section
         class="stage-column"
         [attr.aria-label]="column.name"
@@ -21,7 +24,9 @@
         [style.--stage-background]="column.background"
       >
         <header class="stage-heading">
-          <span class="stage-number">{{ index + 1 }}</span>
+          @if (column.number) {
+            <span class="stage-number">{{ column.number }}</span>
+          }
           <h3>{{ column.name }}</h3>
           <span class="stage-count" [attr.aria-label]="column.stories.length + ' historias'">{{
             column.stories.length
@@ -51,6 +56,7 @@
     </div>
   }
   <div class="board-footer">
-    <span><i></i> Datos de los sprints</span><span>{{ stories.length }} historias en esta vista</span>
+    <span><i></i> Datos de los sprints</span
+    ><span>{{ stories.length }} historias en esta vista</span>
   </div>
 </section>

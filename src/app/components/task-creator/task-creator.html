@@ -213,6 +213,22 @@
               @if (duplicate(draft); as warning) {
                 <p class="warning">{{ warning }}</p>
               }
+              <label>
+                Horas estimadas
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  required
+                  [(ngModel)]="draft.estimatedHours"
+                  [attr.aria-invalid]="!validHours(draft.estimatedHours)"
+                />
+              </label>
+              @if (validHours(draft.estimatedHours)) {
+                <p class="hint">Restantes: {{ draft.estimatedHours }} h · Completadas: 0 h</p>
+              } @else {
+                <p class="warning">Ingresá una cantidad de horas igual o mayor a 0.</p>
+              }
               <button type="button" (click)="removeDraft(draft.id)">Quitar propuesta</button>
             </article>
           }

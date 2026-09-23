@@ -1,11 +1,21 @@
 <aside class="detail" aria-label="Detalle de historia">
   <div class="detail-top">
     <span>DETALLE DE HISTORIA</span
-    ><button mat-icon-button aria-label="Cerrar detalle" (click)="closed.emit()">×</button>
+    ><button
+      mat-icon-button
+      aria-label="Cerrar detalle"
+      (click)="closed.emit()"
+      style="display: flex; justify-content: center; align-items: center"
+    >
+      ×
+    </button>
   </div>
   <div class="detail-body" tabindex="0" role="region" aria-label="Contenido de la historia">
     <div class="detail-id">{{ story.project }} <span>/</span> #{{ story.id }}</div>
     <h2>{{ story.title }}</h2>
+    @if (story.carryover) {
+      <p><strong>Prioridad · PSprint</strong> · Pendiente de {{ story.carryover.sprint }}</p>
+    }
     <span [class]="'badge ' + story.tone">{{ story.status }}</span>
     <p class="detail-description">{{ story.description || 'Sin descripción.' }}</p>
     <div class="detail-meta">
@@ -60,6 +70,29 @@
                 >
               </h4>
               <p>{{ task.state }}</p>
+              <div class="task-hours">
+                <span
+                  >Estimadas: {{ task.estimatedHours ?? '—' }} h · Trabajadas:
+                  {{ task.completedHours ?? '—' }} h</span
+                >
+                <button
+                  mat-button
+                  type="button"
+                  class="register-hours"
+                  [disabled]="registering().has(task.id) || task.estimatedHours == null"
+                  [attr.aria-label]="'Registrar horas de la tarea ' + task.id"
+                  title="Asignar las horas estimadas de Azure a las horas trabajadas"
+                  (click)="registerHours(task.id)"
+                >
+                  {{ registering().has(task.id) ? 'Registrando…' : 'Registrar' }}
+                </button>
+              </div>
+              @if (task.estimatedHours == null) {
+                <p>Agregá una estimación original en Azure para registrar horas.</p>
+              }
+              @if (hourMessages()[task.id]) {
+                <p role="status">{{ hourMessages()[task.id] }}</p>
+              }
               @if (task.specialty === 'Testing') {
                 <p>
                   {{ task.deployedToTesting ? 'Desplegada en Testing' : 'Sin etiqueta En Testing' }}

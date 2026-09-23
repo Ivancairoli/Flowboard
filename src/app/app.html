@@ -6,6 +6,7 @@
   />
 } @else {
   <app-header
+    [organization]="board.context().organization"
     [sessionBusy]="board.sessionLoading()"
     (disconnected)="board.disconnect()"
     [projects]="board.projects()"

@@ -113,6 +113,15 @@ h1 {
   height: auto;
   min-height: 0;
 }
+.filtered-state .stage-stories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  align-content: start;
+  align-items: start;
+}
+.filtered-state .stage-empty {
+  grid-column: 1 / -1;
+}
 .stage-empty {
   margin: 0;
   border: 1px dashed #cfd7e4;

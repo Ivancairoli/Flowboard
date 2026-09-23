@@ -28,6 +28,12 @@ Se listan proyectos accesibles de la organización del enlace, equipos y sprints
 
 Las historias se combinan sin duplicados; cada tarjeta muestra su ruta de iteración. El resumen se calcula sobre HU únicas. Al cambiar de proyecto o equipo se limpia la vista anterior y se ignoran respuestas pendientes de la selección anterior. Sin sprints seleccionados no se consulta el tablero. Se admiten hasta 50 por consulta. La selección dura hasta recargar la página y no modifica Azure. Para cambiar de organización, cerrar sesión e ingresar el nuevo enlace.
 
+## Alias y favoritos de proyectos
+
+El botón **★ ✎** junto al selector de proyectos abre **Alias y favoritos**. Cada proyecto permite guardar un alias de hasta 80 caracteres y marcar o quitar su estrella. Los favoritos aparecen primero y luego se ordenan por el nombre visible. El selector conserva el nombre original junto al alias; las consultas a Azure siguen usando el nombre real. Para quitar un alias, guardar el campo vacío.
+
+Las preferencias se guardan en localStorage de este navegador, separadas por organización y por identificador de proyecto. Persisten al recargar o cerrar sesión; no se sincronizan entre dispositivos y las comparten quienes usan el mismo perfil de navegador. No renombran proyectos ni modifican datos en Azure.
+
 ## Publicación
 
 No alcanza con subir Angular a un hosting estático: también debe ejecutarse el backend Node.js. Esta implementación contempla una instancia del backend y un origen HTTPS común para frontend y API.
@@ -42,13 +48,19 @@ No se desplegó ningún servicio como parte de este cambio. Para varias réplica
 
 ## Datos y actualización
 
-El servicio resuelve la ruta de la iteración dentro del equipo y consulta sus elementos. Recupera historias y tareas relacionadas en lotes de hasta 200 elementos. Soporta historias de tipo User Story, Product Backlog Item, Issue, Requirement y Bug, y tareas hijas directas de tipo Task. Las tareas vinculadas pueden pertenecer a otra iteración y siguen formando parte del avance de su historia. Los tipos personalizados requieren adaptar la clasificación en `server/azure.mjs`.
+El servicio resuelve la ruta de la iteración dentro del equipo y consulta sus elementos. Recupera historias y tareas relacionadas en lotes de hasta 200 elementos. Soporta historias de tipo User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug y Error, y tareas hijas directas de tipo Task o Tarea. Los nombres se reconocen sin distinguir mayúsculas y minúsculas; los estados se consultan con el nombre original del tipo en Azure. Las tareas vinculadas pueden pertenecer a otra iteración y siguen formando parte del avance de su historia. Los tipos personalizados requieren adaptar la clasificación en `server/azure.mjs`.
 
 Las tarjetas muestran el responsable de la HU y los participantes asignados a sus tareas; no se deducen roles de frontend, backend o testing por el nombre del desarrollador. El detalle muestra cada tarea con su estado y responsable reales. Las descripciones se presentan como texto, sin ejecutar HTML de Azure.
 
 El avance es **tareas completadas / tareas no eliminadas × 100**, usando las categorías de estado de Azure. Sin tareas se muestra “Avance no disponible”. La etapa de la HU se recalcula automáticamente a partir de sus tareas en cada sincronización.
 
 Angular consulta cada 60 segundos mientras la aplicación está abierta. El servicio comparte consultas simultáneas y reutiliza una lectura durante 30 segundos; por eso “Actualizar” puede mostrar la misma fecha dentro de ese intervalo. Al fallar una actualización se conserva la última lectura y se indica que está desactualizada. Antes de la primera conexión no se cargan datos de ejemplo.
+
+## Registrar horas trabajadas
+
+En el detalle de cada historia, el botón **Registrar** de una tarea asigna su estimación original actual de Azure a **Completed Work**. Es una asignación, no una suma: repetirlo con la misma estimación no duplica horas. Se muestran las horas estimadas y trabajadas junto al botón. No cambia Remaining Work ni el estado de la tarea. Si no hay estimación, primero hay que ingresarla en Azure y actualizar el tablero; una estimación de 0 es válida.
+
+El clic envía el registro y requiere un PAT con Work Items (Read & write) y permisos de edición. El servidor verifica que la tarea pertenezca a la historia y al proyecto, vuelve a leer la estimación, y usa la revisión de Azure para evitar sobrescribir cambios concurrentes. Si falla o la respuesta es incierta, se muestra el error; actualizar y verificar antes de reintentar. Se invalida la caché del tablero tras cada solicitud.
 
 ## Etiquetas de especialidad en las tareas
 
@@ -74,6 +86,8 @@ Se permiten hasta 30 tareas por envío y 10 solicitudes de creación por minuto 
 
 ### Duplicados y resultados parciales
 
+Cada propuesta permite ingresar **Horas estimadas**, inicialmente 0, con decimales y sin valores negativos. Al crearla se asigna ese valor a Original Estimate y Remaining Work, y Completed Work se inicializa en 0. La vista previa muestra los tres valores. Los reintentos no reinician las horas de tareas ya creadas. Se usan los [campos de esfuerzo de Azure](https://learn.microsoft.com/en-us/azure/devops/boards/queries/query-numeric?view=azure-devops); el proceso del proyecto debe admitirlos.
+
 La vista previa muestra tareas existentes y advertencias por títulos parecidos. El servidor omite títulos idénticos ignorando mayúsculas y espacios, incluyendo duplicados dentro del lote. Una tarea eliminada no bloquea una nueva propuesta con ese título.
 
 Cada propuesta tiene un identificador que se guarda en Azure como etiqueta FlowBoard-UUID. No quitar esa etiqueta: permite reconocer una tarea ya creada aunque se renombre. El botón se bloquea durante el envío y el backend serializa las creaciones de una misma historia dentro de esta instancia.
@@ -86,17 +100,25 @@ Después de escribir se invalida la caché de la sesión y se actualiza el table
 
 Referencia: [Crear work items en Azure DevOps](https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/create?view=azure-devops-rest-7.1).
 
+## Prioridad del sprint anterior: PSprint
+
+Al seleccionar el sprint actual, FlowBoard consulta también el sprint inmediatamente anterior del equipo, determinado por la fecha de finalización más reciente anterior al inicio del actual. Ambos deben tener las fechas necesarias configuradas en Azure. No se recorren sprints más antiguos ni se busca uno más viejo si el anterior no tiene historias etiquetadas.
+
+Las historias cuya iteración es ese sprint anterior y tienen la etiqueta exacta `PSprint` se incorporan a la vista actual con sus tareas y bugs, conservando su etapa e iteración de origen. La etiqueta se lee en la historia, no en sus tareas, ignorando mayúsculas y espacios alrededor. Se destacan con borde naranja y el texto **Prioridad · PSprint**, y aparecen primero en cada columna. Si ambos sprints están seleccionados, cada historia aparece una sola vez. La etiqueta sigue marcando prioridad mientras permanezca en la historia y esta cumpla el límite de un sprint anterior.
+
+La regla solo se activa si está seleccionado el sprint actual; no agrega pendientes al consultar únicamente sprints pasados o futuros. No modifica etiquetas, iteraciones ni estados en Azure. Reiniciar el servidor tras incorporar esta función; los cambios de etiquetas posteriores se reflejan en la sincronización habitual.
+
 ## Bugs vinculados
 
-Cada tarjeta muestra los bugs abiertos y el total; el detalle lista su identificador, título, estado y enlace a Azure. Se incluyen elementos de tipo Bug vinculados directamente a la historia como hijos o mediante la relación Related, incluso fuera de los sprints seleccionados. Un mismo bug se cuenta una sola vez por historia. No se recorren vínculos indirectos a través de tareas ni relaciones de dependencia.
+Cada tarjeta muestra los bugs abiertos y el total; el detalle lista su identificador, título, estado y enlace a Azure. Se incluyen elementos de tipo Bug o Error vinculados directamente a la historia como hijos o mediante la relación Related, incluso fuera de los sprints seleccionados. Un mismo bug se cuenta una sola vez por historia. No se recorren vínculos indirectos a través de tareas ni relaciones de dependencia.
 
-Los bugs eliminados (categoría Removed) no cuentan. Solo Completed se considera cerrado; Resolved y estados desconocidos siguen contando como abiertos. Los bugs se muestran por separado y no modifican el porcentaje de tareas ni la etapa de la historia. Los bugs que ya aparecen como elementos del sprint mantienen sus tarjetas independientes.
+Los bugs eliminados (categoría Removed) no cuentan. Solo Completed se considera cerrado; Resolved y estados desconocidos siguen contando como abiertos. Los bugs se muestran por separado y no modifican el porcentaje de tareas ni la etapa de la historia. Los bugs vinculados directamente a una historia como hijos o mediante Related se muestran únicamente dentro de esa historia y no cuentan como historias independientes. Si el bug pertenece al sprint seleccionado y su historia está fuera, se recupera también la historia con sus tareas. Los bugs sin una historia asociada conservan su tarjeta independiente.
 
 ## Despliegue a Testing
 
-Las tareas Frontend, Backend y Testing pueden crearse al inicio del sprint. Al completar el desarrollo, la historia queda en **Para Testing**. Cuando el despliegue esté disponible, agregar **En Testing** a una tarea que ya tenga la etiqueta **Testing**: ambas etiquetas deben coexistir. La historia pasa a **En testing** en la siguiente sincronización, incluso si esa tarea sigue en estado New.
+Las tareas Frontend, Backend y Testing pueden crearse al inicio del sprint. Al completar el desarrollo, la historia queda en **Para Testing**. Cuando el despliegue esté disponible, agregar **En Testing** a una tarea que ya tenga la etiqueta **Testing**: ambas etiquetas deben coexistir. La historia pasa a **En testing** en la siguiente sincronización si las tareas de Testing aún no comenzaron. Cuando alguna tarea de Testing pasa a una categoría InProgress, Resolved o Completed, la historia pasa a **Testeando**, incluso sin la etiqueta En Testing. Si todas las tareas están completadas, pasa a **Finalizadas**.
 
-La etiqueta se reconoce por coincidencia exacta, ignorando mayúsculas y espacios al principio y al final. No se hereda de la historia y no tiene efecto en tareas de Frontend, Backend, eliminadas o con especialidad ambigua. El detalle muestra si cada tarea de Testing tiene la señal de despliegue. Si se quita la etiqueta, la etapa se recalcula; con desarrollo completo vuelve a Para Testing mientras existan tareas pendientes. Completar todas las tareas, incluyendo Testing, sigue llevando a Finalizadas aunque la etiqueta falte.
+La etiqueta se reconoce por coincidencia exacta, ignorando mayúsculas y espacios al principio y al final. No se hereda de la historia y no tiene efecto en tareas de Frontend, Backend, eliminadas o con especialidad ambigua. El detalle muestra si cada tarea de Testing tiene la señal de despliegue. Si se quita la etiqueta, la etapa se recalcula; con desarrollo completo y Testing sin iniciar vuelve a Para Testing. Si Testing ya comenzó, permanece en Testeando. Completar todas las tareas, incluyendo Testing, sigue llevando a Finalizadas aunque la etiqueta falte.
 
 ## Correspondencia de estados
 
@@ -105,7 +127,8 @@ La etapa visible se calcula con las tareas hijas no eliminadas, independientemen
 - **Sin comenzar:** ninguna tarea comenzó, o no hay tareas vinculadas.
 - **En desarrollo:** alguna tarea comenzó o terminó y todavía hay desarrollo pendiente.
 - **Para Testing:** todas las tareas de desarrollo terminaron y ninguna tarea de Testing tiene la etiqueta En Testing. No es necesario tener ambas especialidades si la historia solo requiere una.
-- **En testing:** alguna tarea con especialidad Testing tiene además la etiqueta En Testing y todavía quedan tareas pendientes. El estado activo de la tarea por sí solo no confirma el despliegue. Esta etapa tiene prioridad si desarrollo y Testing se realizan en paralelo.
+- **En testing:** alguna tarea con especialidad Testing tiene además la etiqueta En Testing, pero ninguna tarea de Testing comenzó.
+- **Testeando:** alguna tarea con especialidad Testing ya comenzó (categorías InProgress, Resolved o Completed) y todavía quedan tareas pendientes. Tiene prioridad sobre En testing y En desarrollo, incluso sin la etiqueta de despliegue. Las tareas eliminadas o con especialidad ambigua no activan esta etapa.
 - **Finalizadas:** hay al menos una tarea de Testing y todas las tareas están completadas. Sin tareas de Testing, completar desarrollo deja la historia en Para Testing.
 
 Se usan las categorías del proceso de Azure: InProgress, Resolved y Completed indican que una tarea comenzó; solo Completed indica que terminó. Las tareas sin especialidad o con varias etiquetas se consideran pendientes de desarrollo hasta completarse, para evitar anunciar disponibilidad para Testing con trabajo sin clasificar pendiente. Los estados de tarea desconocidos no se consideran iniciados ni completados.
@@ -125,7 +148,7 @@ Al reabrir tareas se recalcula la etapa con estas mismas reglas. El estado origi
 
 ## Alcance y verificación
 
-La API exige una sesión para consultar tableros, limita orígenes y hosts, no ofrece rutas arbitrarias hacia Azure y solo admite escritura mediante POST /api/tasks para crear tareas confirmadas; no permite editar ni eliminar elementos existentes. Los datos corresponden a los permisos del PAT de cada sesión. Las pruebas usan credenciales ficticias.
+La API exige una sesión para consultar tableros, limita orígenes y hosts, no ofrece rutas arbitrarias hacia Azure y admite POST /api/tasks para crear tareas confirmadas y POST /api/task-hours para registrar horas trabajadas de una tarea vinculada. No permite eliminar elementos ni editar otros campos existentes. Los datos corresponden a los permisos del PAT de cada sesión. Las pruebas usan credenciales ficticias.
 
 `npm run build` compila Angular. `npm test -- --watch=false` prueba la interfaz y su actualización. `npm run test:api` prueba consultas, transformación, errores y restricciones de acceso con respuestas simuladas, sin usar un PAT real. Una conexión real se confirma únicamente cuando la interfaz muestra una sincronización exitosa.
 

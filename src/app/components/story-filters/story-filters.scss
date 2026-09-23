@@ -42,14 +42,13 @@
   color: #a1a8b5;
 }
 .filter-select {
-  width: 133px;
+  flex: 0 0 clamp(180px, 18vw, 280px);
+  min-width: 0;
+  box-sizing: border-box;
   background: white;
   border: 1px solid #e2e7ef;
   border-radius: 7px;
   padding: 9px 11px;
-}
-.filter-select:first-of-type {
-  width: 122px;
 }
 .filter-select mat-select {
   font-size: 11px;
@@ -57,7 +56,7 @@
 }
 @media (max-width: 1150px) {
   .filter-select {
-    width: 105px;
+    flex-basis: 180px;
   }
 }
 @media (max-width: 600px) {
@@ -68,7 +67,7 @@
     flex-basis: 100%;
   }
   .filter-select {
-    flex: 1;
+    flex: 1 1 180px;
   }
 }
 @media (min-width: 1100px) {

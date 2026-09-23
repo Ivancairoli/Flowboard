@@ -97,9 +97,15 @@ export class TaskCreator implements OnInit {
       this.drafts.length <= 30 &&
       this.drafts.every(
         (draft) =>
-          !!draft.title.trim() && draft.title.length <= 255 && draft.description.length <= 10000,
+          !!draft.title.trim() &&
+          draft.title.length <= 255 &&
+          draft.description.length <= 10000 &&
+          this.validHours(draft.estimatedHours),
       )
     );
+  }
+  validHours(value: number | null | undefined) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0;
   }
   applyPreset(preset: TaskPreset) {
     this.selected = {};
@@ -119,6 +125,7 @@ export class TaskCreator implements OnInit {
         description: `Historia #${this.story.id}: ${this.story.title}\nÁrea técnica: ${option.area}\n\n${this.context.trim()}`,
         specialty: option.specialty,
         assignee: this.assignee.trim(),
+        estimatedHours: 0,
       }));
     this.step = 'preview';
     this.error.set('');

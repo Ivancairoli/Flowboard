@@ -40,21 +40,6 @@
   align-items: center;
   gap: 23px;
 }
-.workspace-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #e5e9ef;
-  border-radius: 9px;
-  line-height: 1;
-  font-weight: 700;
-}
-.rail-line {
-  width: 26px;
-  border-top: 1px solid #eee;
-}
 .rail .active {
   color: #426bec;
   background: #edf2ff;

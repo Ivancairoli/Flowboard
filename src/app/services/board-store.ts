@@ -305,4 +305,38 @@ export class BoardStore implements OnDestroy {
     this.requestId++;
     clearInterval(this.timer);
   }
+  async registerHours(project: string, storyId: number, taskId: number) {
+    const generation = this.generation;
+    try {
+      const result = await firstValueFrom(
+        this.http
+          .post<{ taskId: number; completedHours: number }>(
+            '/api/task-hours',
+            { project, storyId, taskId, confirmed: true },
+            { headers: this.sessionHeaders },
+          )
+          .pipe(timeout(60000)),
+      );
+      if (generation === this.generation && this.project() === project) {
+        this.requestId++;
+        this.loading.set(false);
+        this.stories.update((stories) =>
+          stories.map((story) =>
+            story.id === storyId
+              ? {
+                  ...story,
+                  tasks: story.tasks.map((task) =>
+                    task.id === taskId ? { ...task, completedHours: result.completedHours } : task,
+                  ),
+                }
+              : story,
+          ),
+        );
+        void this.refresh();
+      }
+      return result;
+    } catch (error) {
+      throw new Error(this.message(error));
+    }
+  }
 }

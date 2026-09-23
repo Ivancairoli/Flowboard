@@ -1,5 +1,6 @@
 import { classifyTask } from './task-specialty.mjs';
 import { createTaskWriter } from './task-write.mjs';
+import { createHoursWriter, validateHoursRequest } from './task-hours.mjs';
 
 export class ConnectionError extends Error {
   constructor(code, message, status = 502) {
@@ -14,9 +15,46 @@ const normalize = (value) =>
     .trim()
     .toLowerCase();
 const iterationKey = (value) => normalize(value).replaceAll('/', '\\');
-const stages = ['Sin comenzar', 'En desarrollo', 'Para Testing', 'En testing', 'Finalizadas'];
-const tones = ['gray', 'amber', 'blue', 'purple', 'green'];
-const storyTypes = new Set(['user story', 'product backlog item', 'issue', 'requirement', 'bug']);
+const stages = [
+  'Sin comenzar',
+  'En desarrollo',
+  'Para Testing',
+  'En testing',
+  'Testeando',
+  'Finalizadas',
+];
+const tones = ['gray', 'amber', 'blue', 'purple', 'teal', 'green'];
+const storyTypes = new Set([
+  'user story',
+  'caso de usuario',
+  'product backlog item',
+  'issue',
+  'requirement',
+  'bug',
+  'error',
+]);
+const taskTypes = new Set(['task', 'tarea']);
+const bugTypes = new Set(['bug', 'error']);
+
+function previousSprint(iterations, selected) {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = selected.find(
+    (i) =>
+      i.attributes?.timeFrame === 'current' ||
+      (!i.attributes?.timeFrame &&
+        i.attributes?.startDate?.slice(0, 10) <= today &&
+        i.attributes?.finishDate?.slice(0, 10) >= today),
+  );
+  const start = Date.parse(current?.attributes?.startDate);
+  if (!Number.isFinite(start)) return null;
+  return (
+    iterations
+      .filter((i) => i.id !== current.id && Date.parse(i.attributes?.finishDate) < start)
+      .sort(
+        (a, b) => Date.parse(b.attributes.finishDate) - Date.parse(a.attributes.finishDate),
+      )[0] || null
+  );
+}
 
 export function member(value) {
   if (!value) return null;
@@ -65,6 +103,8 @@ export function mapStory(item, children, statesByType, config, stateMap, linkedB
       const classification = classifyTask(f['System.Tags']);
       return {
         id: child.id,
+        estimatedHours: f['Microsoft.VSTS.Scheduling.OriginalEstimate'] ?? null,
+        completedHours: f['Microsoft.VSTS.Scheduling.CompletedWork'] ?? null,
         title: f['System.Title'],
         state,
         ...classification,
@@ -89,13 +129,15 @@ export function mapStory(item, children, statesByType, config, stateMap, linkedB
   const stage =
     testingTasks.length > 0 && tasks.every((task) => task.completed)
       ? 'Finalizadas'
-      : testingTasks.some((task) => task.deployedToTesting)
-        ? 'En testing'
-        : developmentCompleted
-          ? 'Para Testing'
-          : tasks.some((task) => task.started)
-            ? 'En desarrollo'
-            : 'Sin comenzar';
+      : testingTasks.some((task) => task.started)
+        ? 'Testeando'
+        : testingTasks.some((task) => task.deployedToTesting)
+          ? 'En testing'
+          : developmentCompleted
+            ? 'Para Testing'
+            : tasks.some((task) => task.started)
+              ? 'En desarrollo'
+              : 'Sin comenzar';
   const assignee = member(fields['System.AssignedTo']);
   const participants = [
     ...new Map(
@@ -139,13 +181,13 @@ export function mapStory(item, children, statesByType, config, stateMap, linkedB
 export function createAzureClient(config, stateMap, fetchImpl = fetch) {
   const projectUrl = `https://dev.azure.com/${encodeURIComponent(config.organization)}/${encodeURIComponent(config.project)}`;
   const teamUrl = `${projectUrl}/${encodeURIComponent(config.team)}`;
-  async function request(url, body, write = false) {
+  async function request(url, body, write = false, method = body ? 'POST' : 'GET') {
     if (!config.pat?.trim())
       throw new ConnectionError('TOKEN_MISSING', 'Ingresá tu PAT en la pantalla de conexión.', 503);
     let response;
     try {
       response = await fetchImpl(`${url}${url.includes('?') ? '&' : '?'}api-version=7.1`, {
-        method: body ? 'POST' : 'GET',
+        method,
         redirect: 'error',
         signal: AbortSignal.timeout(20000),
         headers: {
@@ -165,10 +207,10 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
     }
     if (!response.ok) {
       const messages = {
-        400: 'Azure rechazó la tarea. Revisá responsable, campos obligatorios y reglas del proceso.',
+        400: 'Azure rechazó el cambio. Actualizá la tarea y revisá los campos y reglas del proceso.',
         401: 'Azure rechazó el PAT. Revisá que sea válido y no esté vencido.',
         403: write
-          ? 'Para crear tareas necesitás Work Items (Read & write) y permiso para crear elementos en esta área.'
+          ? 'Necesitás Work Items (Read & write) y permiso para modificar elementos en esta área.'
           : 'Acceso denegado. Revisá Work Items (Read), Project and Team (Read) y los permisos de tu cuenta.',
         404: 'Azure no encontró el recurso. Revisá organización, proyecto, equipo y permisos.',
         429: 'Azure limitó las consultas. Esperá un minuto antes de actualizar.',
@@ -244,7 +286,40 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
       ),
     ];
     const items = await batch(ids);
-    const roots = items.filter((item) =>
+    const previous = previousSprint(iterations.value, selected);
+    const carryoverIds = new Set();
+    if (previous) {
+      const priorRelations = selected.some((i) => i.id === previous.id)
+        ? relations
+        : (
+            await request(
+              `${teamUrl}/_apis/work/teamsettings/iterations/${encodeURIComponent(previous.id)}/workitems`,
+            )
+          ).workItemRelations || [];
+      const known = new Set(items.map((item) => item.id));
+      const priorIds = [
+        ...new Set(priorRelations.flatMap((r) => [r.source?.id, r.target?.id])),
+      ].filter((id) => Number.isInteger(id) && id > 0 && !known.has(id));
+      const priorItems = [...items, ...(await batch(priorIds))];
+      for (const item of priorItems) {
+        const type = normalize(item.fields['System.WorkItemType']);
+        if (
+          storyTypes.has(type) &&
+          !bugTypes.has(type) &&
+          iterationKey(item.fields['System.IterationPath']) === iterationKey(previous.path) &&
+          String(item.fields['System.Tags'] || '')
+            .split(';')
+            .some((tag) => normalize(tag) === 'psprint')
+        ) {
+          carryoverIds.add(item.id);
+          if (!known.has(item.id)) {
+            items.push(item);
+            known.add(item.id);
+          }
+        }
+      }
+    }
+    let roots = items.filter((item) =>
       storyTypes.has(normalize(item.fields['System.WorkItemType'])),
     );
     const linkedIds = (root, types) => [
@@ -258,6 +333,17 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
     const childIds = (root) => linkedIds(root, ['System.LinkTypes.Hierarchy-Forward']);
     const bugIds = (root) =>
       linkedIds(root, ['System.LinkTypes.Hierarchy-Forward', 'System.LinkTypes.Related']);
+    const isBug = (item) => bugTypes.has(normalize(item.fields['System.WorkItemType']));
+    const isStory = (item) =>
+      storyTypes.has(normalize(item.fields['System.WorkItemType'])) && !isBug(item);
+    const storyIds = (bug) =>
+      linkedIds(bug, ['System.LinkTypes.Hierarchy-Reverse', 'System.LinkTypes.Related']);
+    // A sprint may contain the bug while its story belongs to another iteration.
+    const initialIds = new Set(items.map((item) => item.id));
+    const ownerIds = [...new Set(roots.filter(isBug).flatMap(storyIds))];
+    const owners = await batch(ownerIds.filter((id) => !initialIds.has(id)));
+    items.push(...owners);
+    roots.push(...owners.filter(isStory));
     const knownIds = new Set(items.map((item) => item.id));
     const missing = [...new Set(roots.flatMap(bugIds))].filter((id) => !knownIds.has(id));
     items.push(...(await batch(missing)));
@@ -269,7 +355,15 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
       statesByType.set(type, data.value);
     }
     const byId = new Map(items.map((item) => [item.id, item]));
+    const bugsByStory = new Map(
+      roots.filter(isStory).map((story) => [story.id, new Set(bugIds(story))]),
+    );
+    for (const bug of items.filter(isBug)) {
+      for (const storyId of storyIds(bug)) bugsByStory.get(storyId)?.add(bug.id);
+    }
+    const attachedBugIds = new Set([...bugsByStory.values()].flatMap((ids) => [...ids]));
     const stories = roots
+      .filter((item) => !isBug(item) || !attachedBugIds.has(item.id))
       .filter(
         (item) =>
           statesByType
@@ -281,17 +375,25 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
           root,
           childIds(root)
             .map((id) => byId.get(id))
-            .filter((child) => child && normalize(child.fields['System.WorkItemType']) === 'task'),
+            .filter(
+              (child) => child && taskTypes.has(normalize(child.fields['System.WorkItemType'])),
+            ),
           statesByType,
           { ...config, projectUrl },
           stateMap,
-          bugIds(root)
+          [...(bugsByStory.get(root.id) || bugIds(root))]
             .map((id) => byId.get(id))
             .filter(
-              (linked) => linked && normalize(linked.fields['System.WorkItemType']) === 'bug',
+              (linked) => linked && bugTypes.has(normalize(linked.fields['System.WorkItemType'])),
             ),
         ),
       );
+    for (const story of stories) {
+      story.carryover = carryoverIds.has(story.id)
+        ? { sprint: previous.name, iteration: previous.path }
+        : null;
+    }
+    stories.sort((a, b) => Number(!!b.carryover) - Number(!!a.carryover));
     const warnings = [];
     if (stories.some((story) => !story.stage))
       warnings.push(
@@ -299,7 +401,7 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
       );
     if (items.length && !roots.length)
       warnings.push(
-        'El sprint tiene elementos pero ninguno es User Story, Product Backlog Item, Issue, Requirement o Bug. Revisá los tipos de trabajo del proyecto.',
+        'El sprint tiene elementos pero ninguno es User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug o Error. Revisá los tipos de trabajo del proyecto.',
       );
     return {
       stories,
@@ -366,6 +468,15 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
     };
   };
   const writeTasks = createTaskWriter({ config, projectUrl, request, batch });
+  const writeHours = createHoursWriter({ projectUrl, request, batch });
+  loadBoard.registerHours = (input) => {
+    validateHoursRequest(input);
+    return input.project === config.project
+      ? writeHours(input)
+      : createAzureClient({ ...config, project: input.project }, stateMap, fetchImpl).registerHours(
+          input,
+        );
+  };
   loadBoard.createTasks = (input) =>
     input.project === config.project
       ? writeTasks(input)

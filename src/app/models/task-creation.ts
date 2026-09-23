@@ -10,6 +10,7 @@ export type TaskDraft = {
   description: string;
   specialty: TaskSpecialty;
   assignee: string;
+  estimatedHours?: number | null;
 };
 export type TaskCreationResult = {
   draftId: string;

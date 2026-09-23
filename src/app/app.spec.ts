@@ -88,6 +88,7 @@ describe('FlowBoard conectado a Azure', () => {
       'En desarrollo',
       'Para Testing',
       'En testing',
+      'Testeando',
       'Finalizadas',
       'Sin clasificar',
     ]);
@@ -96,6 +97,47 @@ describe('FlowBoard conectado a Azure', () => {
     expect(el.textContent).not.toContain('Vista de ejemplo');
     expect(el.querySelectorAll('mat-progress-bar')).toHaveLength(0);
   });
+  it('shows and filters stories in Testeando and counts them separately from En testing', async () => {
+    store.stories.set([makeStory(1, 'Testeando'), makeStory(2, 'En testing')]);
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(
+      el.querySelector('[aria-label="Testeando"]')?.querySelectorAll('.story-card'),
+    ).toHaveLength(1);
+    expect(
+      el.querySelector('[aria-label="En testing"]')?.querySelectorAll('.story-card'),
+    ).toHaveLength(1);
+    const metric = Array.from(el.querySelectorAll('.metric')).find((m) =>
+      m.textContent?.includes('Testeando'),
+    );
+    expect(metric?.querySelector('strong')?.textContent).toBe('1');
+    fixture.componentInstance.status.set('Testeando');
+    expect(fixture.componentInstance.filtered().map((s) => s.id)).toEqual([1]);
+  });
+
+  it('highlights PSprint stories without changing their stage or duplicating counts', async () => {
+    store.stories.set([
+      {
+        ...makeStory(1, 'Para Testing'),
+        carryover: { sprint: 'Sprint anterior', iteration: 'Pages/Anterior' },
+      },
+      makeStory(2, 'Para Testing'),
+    ]);
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.story-card.carryover')).toHaveLength(1);
+    expect(el.querySelector('.carryover-label')?.textContent).toContain('Prioridad · PSprint');
+    expect(
+      el.querySelector('[aria-label="Para Testing"]')?.querySelectorAll('.story-card'),
+    ).toHaveLength(2);
+    expect(el.querySelector('.metrics strong')?.textContent).toBe('2');
+    store.stories.set([makeStory(1, 'Para Testing'), makeStory(2, 'Para Testing')]);
+    await fixture.whenStable();
+    expect(el.querySelectorAll('.story-card.carryover')).toHaveLength(0);
+  });
+
   it('shows bug counts and linked bug details and refreshes them with the board', async () => {
     const bugs = [
       {
@@ -139,6 +181,36 @@ describe('FlowBoard conectado a Azure', () => {
     app.clearFilters();
     expect(app.filtered()).toHaveLength(6);
   });
+  it('expands the selected state, retains empty columns and restores the full board', async () => {
+    store.stories.set([
+      makeStory(1, 'Testeando'),
+      makeStory(2, 'Testeando'),
+      { ...makeStory(3, 'En desarrollo'), blocked: true, status: 'Bloqueada' },
+      { ...makeStory(4, 'Para Testing'), blocked: true, status: 'Bloqueada' },
+    ]);
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const el = fixture.nativeElement as HTMLElement;
+    for (const [state, count] of [
+      ['Testeando', 2],
+      ['Bloqueada', 2],
+      ['Sin clasificar', 0],
+      ['Finalizadas', 0],
+    ] as const) {
+      app.status.set(state);
+      await fixture.whenStable();
+      expect(el.querySelectorAll('.stage-column')).toHaveLength(1);
+      expect(el.querySelector('.stage-column')?.getAttribute('aria-label')).toBe(state);
+      expect(el.querySelectorAll('.story-card')).toHaveLength(count);
+      expect(el.querySelector('.story-list')?.classList.contains('filtered-state')).toBe(true);
+    }
+    app.clearFilters();
+    await fixture.whenStable();
+    expect(el.querySelectorAll('.stage-column')).toHaveLength(6);
+    expect(el.querySelectorAll('.story-card')).toHaveLength(4);
+    expect(el.querySelector('.story-list')?.classList.contains('filtered-state')).toBe(false);
+  });
+
   it('searches and clears through component events', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();

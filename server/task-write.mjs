@@ -19,7 +19,7 @@ const escapeHtml = (value) =>
 const bad = () =>
   new ConnectionError(
     'INVALID_TASKS',
-    'Revisá las tareas: entre 1 y 30, título, especialidad y proyecto válidos. Confirmá la vista previa.',
+    'Revisá las tareas: entre 1 y 30, título, especialidad, proyecto y horas estimadas válidos (número igual o mayor a 0). Confirmá la vista previa.',
     400,
   );
 
@@ -55,7 +55,11 @@ export function validateTaskRequest(input) {
       !['Frontend', 'Backend', 'Testing'].includes(task.specialty) ||
       typeof task.assignee !== 'string' ||
       task.assignee.length > 256 ||
-      /[\x00-\x1f]/.test(task.assignee)
+      /[\x00-\x1f]/.test(task.assignee) ||
+      (task.estimatedHours !== undefined &&
+        (typeof task.estimatedHours !== 'number' ||
+          !Number.isFinite(task.estimatedHours) ||
+          task.estimatedHours < 0))
     )
       throw bad();
     ids.add(task.id);
@@ -187,6 +191,17 @@ export function createTaskWriter({ config, projectUrl, request, batch }) {
           { op: 'add', path: '/fields/System.Tags', value: `${task.specialty}; ${marker}` },
           { op: 'add', path: '/fields/System.AreaPath', value: area },
           { op: 'add', path: '/fields/System.IterationPath', value: iteration },
+          {
+            op: 'add',
+            path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate',
+            value: task.estimatedHours ?? 0,
+          },
+          {
+            op: 'add',
+            path: '/fields/Microsoft.VSTS.Scheduling.RemainingWork',
+            value: task.estimatedHours ?? 0,
+          },
+          { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: 0 },
           ...(task.assignee.trim()
             ? [{ op: 'add', path: '/fields/System.AssignedTo', value: task.assignee.trim() }]
             : []),

@@ -1,6 +1,8 @@
 export type TeamMember = { id: string; name: string; fullName: string; initials: string };
 export type TaskSpecialty = 'Frontend' | 'Backend' | 'Testing';
 export type StoryTask = {
+  estimatedHours?: number | null;
+  completedHours?: number | null;
   id: number;
   title: string;
   state: string;
@@ -19,6 +21,7 @@ export type StoryBug = {
   url: string;
 };
 export type Story = {
+  carryover?: { sprint: string; iteration: string } | null;
   id: number;
   title: string;
   description: string;

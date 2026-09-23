@@ -1,4 +1,9 @@
-<article class="story-card" [class.selected]="selected">
+<article class="story-card" [class.selected]="selected" [class.carryover]="!!story.carryover">
+  @if (story.carryover) {
+    <div class="carryover-label" [matTooltip]="'Pendiente del sprint ' + story.carryover.sprint">
+      Prioridad · PSprint
+    </div>
+  }
   <div class="story-top">
     <span class="story-id">#{{ story.id }}</span
     ><span [class]="'badge ' + story.tone" [matTooltip]="'Estado Azure: ' + story.azureState"

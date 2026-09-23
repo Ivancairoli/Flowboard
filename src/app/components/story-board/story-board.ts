@@ -15,14 +15,28 @@ export class StoryBoard {
   get columns() {
     const stages = [
       ...STORY_STAGES,
-      ...(this.stories.some((story) => !story.stage)
+      ...(this.status() === 'Sin clasificar' || this.stories.some((story) => !story.stage)
         ? [{ name: 'Sin clasificar', color: '#7a8597', background: '#f0f3f7' }]
         : []),
     ];
-    return stages.map((stage) => ({
-      ...stage,
-      stories: this.stories.filter((story) => storyStage(story) === stage.name),
-    }));
+    if (this.status() === 'Bloqueada') {
+      return [
+        {
+          name: 'Bloqueada',
+          color: '#c44f5b',
+          background: '#fff0f1',
+          number: null,
+          stories: this.stories.filter((story) => story.blocked || story.status === 'Bloqueada'),
+        },
+      ];
+    }
+    return stages
+      .map((stage, index) => ({
+        ...stage,
+        number: index + 1,
+        stories: this.stories.filter((story) => storyStage(story) === stage.name),
+      }))
+      .filter((column) => this.status() === 'Todos' || column.name === this.status());
   }
   @Input({ required: true }) stories!: Story[];
   @Input({ required: true }) total!: number;

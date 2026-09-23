@@ -7,7 +7,7 @@
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 29px;
 }
@@ -193,4 +193,9 @@
   .metric-icon {
     display: none;
   }
+}
+
+.teal {
+  color: #087e8b;
+  background: #e8f7f9;
 }
