@@ -378,12 +378,16 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
             .filter(
               (child) => child && taskTypes.has(normalize(child.fields['System.WorkItemType'])),
             ),
+            .filter(
+              (child) => child && taskTypes.has(normalize(child.fields['System.WorkItemType'])),
+            ),
           statesByType,
           { ...config, projectUrl },
           stateMap,
           [...(bugsByStory.get(root.id) || bugIds(root))]
             .map((id) => byId.get(id))
             .filter(
+              (linked) => linked && bugTypes.has(normalize(linked.fields['System.WorkItemType'])),
               (linked) => linked && bugTypes.has(normalize(linked.fields['System.WorkItemType'])),
             ),
         ),
@@ -401,6 +405,7 @@ export function createAzureClient(config, stateMap, fetchImpl = fetch) {
       );
     if (items.length && !roots.length)
       warnings.push(
+        'El sprint tiene elementos pero ninguno es User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug o Error. Revisá los tipos de trabajo del proyecto.',
         'El sprint tiene elementos pero ninguno es User Story, Caso de usuario, Product Backlog Item, Issue, Requirement, Bug o Error. Revisá los tipos de trabajo del proyecto.',
       );
     return {
