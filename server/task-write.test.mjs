@@ -69,7 +69,7 @@ test('creation inherits scope, safely renders descriptions, sets specialty and p
   assert.equal(fields['/fields/System.AreaPath'], 'Pages\\Area');
   assert.equal(fields['/fields/System.IterationPath'], 'Pages\\Sprint 2');
   assert.equal(fields['/fields/System.AssignedTo'], 'ana@example.test');
-  assert.equal(fields['/fields/System.Tags'], `Frontend; FlowBoard-${draft.id}`);
+  assert.equal(fields['/fields/System.Tags'], 'Frontend');
   assert.equal(
     fields['/fields/System.Description'],
     'Regla &lt;script&gt; &amp; validación<br>Otra línea',
@@ -167,7 +167,37 @@ test('skips normalized duplicate titles, creates only once within a batch and om
   assert.ok(!writes[0].some((op) => op.path === '/fields/System.AssignedTo'));
 });
 
-test('recovers by operation tag using a fresh client without repeating the write', async () => {
+test('new tasks receive only their specialty tag and remain deduplicated on retries', async () => {
+  for (const specialty of ['Frontend', 'Backend', 'Testing']) {
+    const { load, writes } = fixture();
+    const payload = input([{ ...task(), specialty }]);
+    await load.createTasks(payload);
+    await load.createTasks(payload);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].find((op) => op.path === '/fields/System.Tags').value, specialty);
+    assert.ok(!JSON.stringify(writes).includes('FlowBoard-'));
+  }
+});
+
+test('a fresh client skips existing task titles without requiring a technical tag', async () => {
+  const draft = task();
+  const { load, writes } = fixture({
+    existing: [
+      {
+        id: 7,
+        fields: {
+          'System.WorkItemType': 'Task',
+          'System.Title': draft.title,
+          'System.Tags': 'Frontend',
+        },
+      },
+    ],
+  });
+  assert.equal((await load.createTasks(input([draft]))).results[0].status, 'duplicate');
+  assert.equal(writes.length, 0);
+});
+
+test('recognizes legacy operation tags using a fresh client without repeating the write', async () => {
   const draft = task();
   const { load, writes } = fixture({
     existing: [

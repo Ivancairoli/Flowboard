@@ -34,6 +34,7 @@ import { TaskDrafts } from '../../services/task-drafts';
 export class TaskCreator implements OnInit {
   @Input({ required: true }) story!: Story;
   @Output() readonly closed = new EventEmitter<void>();
+  @Output() readonly completed = new EventEmitter<void>();
   @ViewChild('creatorBody') private body?: ElementRef<HTMLElement>;
   readonly board = inject(BoardStore);
   private readonly saved = inject(TaskDrafts);
@@ -239,6 +240,19 @@ export class TaskCreator implements OnInit {
         payload: this.submitted,
         results: result.results,
       });
+      const successful = new Set(
+        result.results
+          .filter((item) => ['created', 'existing', 'duplicate'].includes(item.status))
+          .map((item) => item.draftId),
+      );
+      if (
+        result.results.length === this.submitted.tasks.length &&
+        this.submitted.tasks.every((task) => successful.has(task.id))
+      ) {
+        this.saved.submissions.delete(this.operationKey);
+        this.completed.emit();
+        this.closed.emit();
+      }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No se pudo confirmar el resultado.');
     } finally {

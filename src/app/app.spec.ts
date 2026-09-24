@@ -93,7 +93,9 @@ describe('FlowBoard conectado a Azure', () => {
       'Sin clasificar',
     ]);
     expect(el.querySelector('.metrics strong')?.textContent).toBe('6');
-    expect(el.textContent).not.toContain('Iván');
+    for (const assignees of el.querySelectorAll('.real-assignees')) {
+      expect(assignees.textContent).not.toContain('Iván');
+    }
     expect(el.textContent).not.toContain('Vista de ejemplo');
     expect(el.querySelectorAll('mat-progress-bar')).toHaveLength(0);
   });

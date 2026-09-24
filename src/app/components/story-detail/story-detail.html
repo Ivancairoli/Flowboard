@@ -121,5 +121,9 @@
   </div>
 </aside>
 @if (creating) {
-  <app-task-creator [story]="story" (closed)="creating = false" />
+  <app-task-creator
+    [story]="story"
+    (closed)="creating = false"
+    (completed)="creating = false; closed.emit()"
+  />
 }

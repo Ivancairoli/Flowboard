@@ -119,6 +119,7 @@ export function createTaskWriter({ config, projectUrl, request, batch }) {
       const results = [];
       let stopped = false;
       for (const task of input.tasks) {
+        // Read legacy markers for older tasks; new tasks only receive the specialty tag.
         const marker = `FlowBoard-${task.id}`;
         const key = `${scope}/${task.id}`;
         const fingerprint = createHash('sha256').update(JSON.stringify(task)).digest('hex');
@@ -188,7 +189,7 @@ export function createTaskWriter({ config, projectUrl, request, batch }) {
         const patch = [
           { op: 'add', path: '/fields/System.Title', value: task.title.trim() },
           { op: 'add', path: '/fields/System.Description', value: escapeHtml(task.description) },
-          { op: 'add', path: '/fields/System.Tags', value: `${task.specialty}; ${marker}` },
+          { op: 'add', path: '/fields/System.Tags', value: task.specialty },
           { op: 'add', path: '/fields/System.AreaPath', value: area },
           { op: 'add', path: '/fields/System.IterationPath', value: iteration },
           {
@@ -221,7 +222,7 @@ export function createTaskWriter({ config, projectUrl, request, batch }) {
           attempt.uncertain = false;
           children.push({
             id: created.id,
-            fields: { 'System.Title': task.title, 'System.Tags': `${task.specialty}; ${marker}` },
+            fields: { 'System.Title': task.title, 'System.Tags': task.specialty },
           });
           results.push(identified('created', created.id));
         } catch (error) {

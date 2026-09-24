@@ -98,6 +98,49 @@ describe('Task creator', () => {
     await reopened.submit();
     expect(store.createTasks.mock.calls[1][0]).toEqual(first);
   });
+  it('closes after confirmed success and clears the saved submission', async () => {
+    const fixture = setup();
+    const c = fixture.componentInstance;
+    c.applyPreset(c.config.presets[0]);
+    c.buildPreview();
+    const closed = vi.fn();
+    const completed = vi.fn();
+    c.closed.subscribe(closed);
+    c.completed.subscribe(completed);
+    store.createTasks.mockResolvedValue({
+      results: c.drafts.map((draft, index) => ({
+        draftId: draft.id,
+        title: draft.title,
+        status: ['created', 'existing', 'duplicate'][index % 3],
+      })),
+    });
+    await c.submit();
+    expect(closed).toHaveBeenCalledOnce();
+    expect(completed).toHaveBeenCalledOnce();
+    fixture.destroy();
+    const reopened = setup().componentInstance;
+    expect(reopened.submitted).toBeNull();
+    expect(reopened.step).toBe('select');
+  });
+
+  it('keeps partial, uncertain and incomplete results open', async () => {
+    const c = setup().componentInstance;
+    c.selected['be-0'] = true;
+    c.buildPreview();
+    const closed = vi.fn();
+    const completed = vi.fn();
+    c.closed.subscribe(closed);
+    c.completed.subscribe(completed);
+    for (const status of ['failed', 'pending', 'unknown']) {
+      store.createTasks.mockResolvedValue({ results: [{ draftId: c.drafts[0].id, status }] });
+      await c.submit();
+    }
+    store.createTasks.mockResolvedValue({ results: [] });
+    await c.submit();
+    expect(closed).not.toHaveBeenCalled();
+    expect(completed).not.toHaveBeenCalled();
+  });
+
   it('prevents double submission while a creation is in progress', async () => {
     let release!: (value: any) => void;
     store.createTasks.mockImplementation(
