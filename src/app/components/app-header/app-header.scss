@@ -231,8 +231,8 @@ i {
     order: 1;
   }
 }
-.project-preferences,
-.project-preferences-panel button {
+.team-preferences,
+.team-preferences-panel button {
   border: 1px solid #dde3ee;
   border-radius: 6px;
   background: #fff;
@@ -241,14 +241,14 @@ i {
   cursor: pointer;
   white-space: nowrap;
 }
-.project-preferences {
+.team-preferences {
   flex-shrink: 0;
 }
-.project-preferences:disabled {
+.team-preferences:disabled {
   opacity: 0.5;
   cursor: default;
 }
-.project-preferences-panel {
+.team-preferences-panel {
   flex-shrink: 0;
   max-height: 35vh;
   overflow: auto;
@@ -265,11 +265,11 @@ i {
   font-size: 15px;
   margin: 0;
 }
-.project-preferences-panel p {
+.team-preferences-panel p {
   color: #53627e;
   font-size: 12px;
 }
-.project-preference-row {
+.team-preference-row {
   display: grid;
   grid-template-columns: auto minmax(120px, 1fr) minmax(150px, 2fr) auto;
   gap: 10px;
@@ -277,17 +277,17 @@ i {
   margin-top: 8px;
   font-size: 12px;
 }
-.project-preference-row label {
+.team-preference-row label {
   overflow-wrap: anywhere;
 }
-.project-preference-row input {
+.team-preference-row input {
   min-width: 0;
   padding: 8px;
   border: 1px solid #dde3ee;
   border-radius: 6px;
   font: inherit;
 }
-.project-preference-row .favorite {
+.team-preference-row .favorite {
   color: #976000;
   background: #fff4d3;
 }
@@ -298,10 +298,10 @@ i {
   margin: 0;
 }
 @media (max-width: 600px) {
-  .project-preference-row {
+  .team-preference-row {
     grid-template-columns: auto minmax(0, 1fr);
   }
-  .project-preference-row input {
+  .team-preference-row input {
     grid-column: 1 / -1;
   }
 }

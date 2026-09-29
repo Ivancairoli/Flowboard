@@ -106,7 +106,14 @@
           <h3>Combinaciones rápidas</h3>
           <div class="presets">
             @for (preset of config.presets; track $index) {
-              <button type="button" (click)="applyPreset(preset)">{{ preset.name }}</button>
+              <button
+                type="button"
+                (click)="applyPreset(preset)"
+                [class.preset-selected]="isPresetSelected(preset)"
+                [attr.aria-pressed]="isPresetSelected(preset)"
+              >
+                {{ preset.name }}
+              </button>
             }
           </div>
           <p class="hint">

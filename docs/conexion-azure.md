@@ -28,11 +28,11 @@ Se listan proyectos accesibles de la organización del enlace, equipos y sprints
 
 Las historias se combinan sin duplicados; cada tarjeta muestra su ruta de iteración. El resumen se calcula sobre HU únicas. Al cambiar de proyecto o equipo se limpia la vista anterior y se ignoran respuestas pendientes de la selección anterior. Sin sprints seleccionados no se consulta el tablero. Se admiten hasta 50 por consulta. La selección dura hasta recargar la página y no modifica Azure. Para cambiar de organización, cerrar sesión e ingresar el nuevo enlace.
 
-## Alias y favoritos de proyectos
+## Alias y favoritos de equipos
 
-El botón **★ ✎** junto al selector de proyectos abre **Alias y favoritos**. Cada proyecto permite guardar un alias de hasta 80 caracteres y marcar o quitar su estrella. Los favoritos aparecen primero y luego se ordenan por el nombre visible. El selector conserva el nombre original junto al alias; las consultas a Azure siguen usando el nombre real. Para quitar un alias, guardar el campo vacío.
+El botón **★ ✎** junto al selector de equipos (segundo desplegable) abre **Alias y favoritos de equipos**. Cada equipo permite guardar un alias de hasta 80 caracteres y marcar o quitar su estrella. Los favoritos aparecen primero, ordenados por el nombre visible. El selector muestra también el nombre original; las consultas a Azure siguen usando el nombre real del equipo. Para quitar un alias, guardar el campo vacío.
 
-Las preferencias se guardan en localStorage de este navegador, separadas por organización y por identificador de proyecto. Persisten al recargar o cerrar sesión; no se sincronizan entre dispositivos y las comparten quienes usan el mismo perfil de navegador. No renombran proyectos ni modifican datos en Azure.
+Las preferencias se guardan en este navegador, separadas por organización, proyecto e identificador de equipo. No se sincronizan entre dispositivos ni modifican nombres en Azure. Los alias y favoritos anteriores de proyectos dejan de aplicarse y no se trasladan automáticamente a equipos. El selector de proyectos vuelve a mostrar los nombres originales.
 
 ## Publicación
 
@@ -75,7 +75,7 @@ Después de incorporar esta funcionalidad, reiniciar `npm start` para actualizar
 En el detalle, elegir **Crear tareas**. Completar la funcionalidad y las reglas de negocio comunes, seleccionar elementos por área y elegir Crear, Modificar o Eliminar para cada uno. Estas acciones describen el trabajo de la tarea: no modifican ni eliminan archivos o elementos existentes.
 
 - Áreas iniciales: Base de datos (tabla, columna, procedimiento y migración), Backend (entidad, DTO, repositorio, servicio, endpoint y pruebas), Frontend (modelo, servicio, componente, pantalla y pruebas) y Testing (casos, validación y regresión).
-- Combinaciones iniciales: Frontend, Backend, Testing y Agregar campo de punta a punta. Se pueden guardar selecciones propias, cambiar nombres/áreas/etiquetas, agregar o quitar opciones y eliminar combinaciones. Se guardan en localStorage por organización y proyecto, únicamente en este navegador; no se comparten con otros usuarios ni dispositivos.
+- Combinaciones iniciales: Frontend, Backend y Testing. Se pueden guardar selecciones propias, cambiar nombres/áreas/etiquetas, agregar o quitar opciones y eliminar combinaciones. Se guardan en localStorage por organización y proyecto, únicamente en este navegador; no se comparten con otros usuarios ni dispositivos.
 - Base de datos usa Backend por defecto para integrarse con el cálculo de etapas. Cada tarea debe tener exactamente una especialidad Frontend, Backend o Testing.
 - En la vista previa se editan títulos, descripciones, etiquetas y responsables individuales; las propuestas pueden quitarse. El responsable común es opcional: usar correo o nombre exacto reconocido por Azure. Si Azure no lo puede resolver, la tarea no se crea y se muestra el error.
 - **Confirmar y crear… en Azure** es el único paso que envía las tareas. Requiere Work Items → Read & write y permisos de creación en el área. La consulta del tablero sigue funcionando con permisos de lectura.

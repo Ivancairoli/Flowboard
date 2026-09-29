@@ -125,6 +125,11 @@ button:disabled {
   flex-wrap: wrap;
   gap: 8px;
 }
+.presets button.preset-selected {
+  color: #fff;
+  background: #386bd6;
+  border-color: #386bd6;
+}
 .actions {
   justify-content: flex-end;
   margin: 20px 0 8px;

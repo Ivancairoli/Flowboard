@@ -58,7 +58,6 @@ export function defaultTaskConfiguration(): TaskConfiguration {
   return {
     options,
     presets: [
-      preset('Agregar campo de punta a punta', ['db-1', 'be-1', 'be-4', 'fe-0', 'fe-1', 'fe-2']),
       preset('Frontend', ['fe-0', 'fe-1', 'fe-2', 'fe-4']),
       preset('Backend', ['be-0', 'be-1', 'be-2', 'be-3', 'be-4', 'be-5']),
       preset('Testing', ['qa-0', 'qa-1', 'qa-2'], 'Crear'),

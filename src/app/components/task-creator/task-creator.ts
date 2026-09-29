@@ -52,6 +52,7 @@ export class TaskCreator implements OnInit {
   context = '';
   assignee = '';
   presetName = '';
+  selectedPreset: TaskPreset | null = null;
   drafts: TaskDraft[] = [];
   step: 'select' | 'preview' = 'select';
   submitted: TaskSubmission | null = null;
@@ -66,8 +67,14 @@ export class TaskCreator implements OnInit {
       const value = localStorage.getItem(this.key);
       if (value) {
         const parsed = JSON.parse(value);
-        if (validTaskConfiguration(parsed)) this.config = parsed;
-        else
+        if (validTaskConfiguration(parsed)) {
+          this.config = {
+            ...parsed,
+            presets: parsed.presets.filter(
+              (preset) => preset.name !== 'Agregar campo de punta a punta',
+            ),
+          };
+        } else
           this.notice.set(
             'La configuración guardada no es válida. Se cargaron las opciones iniciales.',
           );
@@ -109,12 +116,24 @@ export class TaskCreator implements OnInit {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0;
   }
   applyPreset(preset: TaskPreset) {
+    this.selectedPreset = preset;
     this.selected = {};
     this.action = {};
     for (const entry of preset.entries) {
       this.selected[entry.optionId] = true;
       this.action[entry.optionId] = entry.action;
     }
+  }
+  isPresetSelected(preset: TaskPreset) {
+    return (
+      this.selectedPreset === preset &&
+      this.selectedCount === preset.entries.length &&
+      preset.entries.every(
+        (entry) =>
+          this.selected[entry.optionId] &&
+          (this.action[entry.optionId] || 'Modificar') === entry.action,
+      )
+    );
   }
   buildPreview() {
     if (!this.functionality.trim() || !this.selectedCount || this.selectedCount > 30) return;

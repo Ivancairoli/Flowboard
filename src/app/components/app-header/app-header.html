@@ -12,35 +12,11 @@
         [disabled]="busy || !projects.length"
         (selectionChange)="projectChange.emit($event.value)"
       >
-        <mat-select-trigger>
-          @for (item of projects; track item.id) {
-            @if (item.name === project) {
-              {{ preference(item).favorite ? '★ ' : '' }}{{ projectLabel(item) }}
-            }
-          }
-        </mat-select-trigger>
-        @for (item of orderedProjects; track item.id) {
-          <mat-option [value]="item.name">
-            {{ preference(item).favorite ? '★ ' : '' }}{{ projectLabel(item) }}
-            @if (preference(item).alias) {
-              <small> · {{ item.name }}</small>
-            }
-          </mat-option>
+        @for (item of projects; track item.id) {
+          <mat-option [value]="item.name">{{ item.name }}</mat-option>
         }
       </mat-select>
     </div>
-    <button
-      class="project-preferences"
-      type="button"
-      aria-label="Personalizar proyectos"
-      title="Alias y favoritos"
-      [attr.aria-expanded]="personalizing"
-      aria-controls="project-preferences"
-      [disabled]="!organization || !projects.length"
-      (click)="personalizing = !personalizing"
-    >
-      ★ ✎
-    </button>
     <div class="context-select">
       <mat-select
         aria-label="Equipo"
@@ -49,11 +25,35 @@
         [disabled]="busy || !teams.length"
         (selectionChange)="teamChange.emit($event.value)"
       >
-        @for (item of teams; track item.id) {
-          <mat-option [value]="item.name">{{ item.name }}</mat-option>
+        <mat-select-trigger>
+          @for (item of teams; track item.id) {
+            @if (item.name === team) {
+              {{ preference(item).favorite ? '★ ' : '' }}{{ teamLabel(item) }}
+            }
+          }
+        </mat-select-trigger>
+        @for (item of orderedTeams; track item.id) {
+          <mat-option [value]="item.name">
+            {{ preference(item).favorite ? '★ ' : '' }}{{ teamLabel(item) }}
+            @if (preference(item).alias) {
+              <small> · {{ item.name }}</small>
+            }
+          </mat-option>
         }
       </mat-select>
     </div>
+    <button
+      class="team-preferences"
+      type="button"
+      aria-label="Personalizar equipos"
+      title="Alias y favoritos de equipos"
+      [attr.aria-expanded]="personalizing"
+      aria-controls="team-preferences"
+      [disabled]="busy || !organization || !project || !teams.length"
+      (click)="personalizing = !personalizing"
+    >
+      ★ ✎
+    </button>
     <div class="context-select sprint-select">
       <mat-select
         aria-label="Sprints"
@@ -93,20 +93,20 @@
 </header>
 @if (personalizing) {
   <section
-    class="project-preferences-panel"
-    id="project-preferences"
-    aria-label="Alias y favoritos"
+    class="team-preferences-panel"
+    id="team-preferences"
+    aria-label="Alias y favoritos de equipos"
   >
     <div class="preferences-heading">
-      <h2>Alias y favoritos</h2>
+      <h2>Alias y favoritos de equipos</h2>
       <button type="button" (click)="personalizing = false">Cerrar</button>
     </div>
     <p>
-      Guardados en este navegador para {{ organization }}. Dejá el alias vacío para usar el nombre
-      original.
+      Guardados en este navegador para {{ organization }} / {{ project }}. Dejá el alias vacío para
+      usar el nombre original.
     </p>
-    @for (item of projects; track item.id) {
-      <div class="project-preference-row">
+    @for (item of teams; track item.id) {
+      <div class="team-preference-row">
         <button
           type="button"
           [class.favorite]="preference(item).favorite"

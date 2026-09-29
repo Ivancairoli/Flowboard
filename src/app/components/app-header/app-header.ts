@@ -14,14 +14,14 @@ export class AppHeader implements OnChanges {
   preferenceError = '';
   preferences: Record<string, { alias: string; favorite: boolean }> = {};
   private get preferenceKey() {
-    return `flowboard:project-preferences:v1:${this.organization.trim().toLowerCase()}`;
+    return `flowboard:team-preferences:v1:${encodeURIComponent(this.organization.trim().toLowerCase())}:${encodeURIComponent(this.project.trim().toLowerCase())}`;
   }
   ngOnChanges(changes: SimpleChanges) {
-    if (!changes['organization']) return;
+    if (!changes['organization'] && !changes['project']) return;
     this.preferences = {};
     this.personalizing = false;
     this.preferenceError = '';
-    if (!this.organization) return;
+    if (!this.organization || !this.project) return;
     try {
       const stored = JSON.parse(localStorage.getItem(this.preferenceKey) || '{}');
       if (!stored || typeof stored !== 'object' || Array.isArray(stored)) throw new Error();
@@ -37,7 +37,7 @@ export class AppHeader implements OnChanges {
         }),
       ) as typeof this.preferences;
     } catch {
-      this.preferenceError = 'No se pudieron leer las preferencias de proyectos de este navegador.';
+      this.preferenceError = 'No se pudieron leer las preferencias de equipos de este navegador.';
     }
   }
   preference(item: ScopeOption) {
@@ -45,19 +45,19 @@ export class AppHeader implements OnChanges {
       ? this.preferences[item.id]
       : { alias: '', favorite: false };
   }
-  projectLabel(item: ScopeOption) {
+  teamLabel(item: ScopeOption) {
     return this.preference(item).alias || item.name;
   }
-  get orderedProjects() {
-    return [...this.projects].sort(
+  get orderedTeams() {
+    return [...this.teams].sort(
       (a, b) =>
         Number(this.preference(b).favorite) - Number(this.preference(a).favorite) ||
-        this.projectLabel(a).localeCompare(this.projectLabel(b), 'es') ||
+        this.teamLabel(a).localeCompare(this.teamLabel(b), 'es') ||
         a.name.localeCompare(b.name),
     );
   }
   savePreference(item: ScopeOption, change: Partial<{ alias: string; favorite: boolean }>) {
-    if (!this.organization) return;
+    if (!this.organization || !this.project) return;
     const entry = { ...this.preference(item), ...change };
     entry.alias = entry.alias.trim();
     if (entry.alias.length > 80) return;
