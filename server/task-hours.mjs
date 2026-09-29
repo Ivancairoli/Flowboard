@@ -56,7 +56,26 @@ export function createHoursWriter({ projectUrl, request, batch }) {
         400,
       );
     }
-    if (task.fields['Microsoft.VSTS.Scheduling.CompletedWork'] !== estimate) {
+    const metadata = await request(
+      `${projectUrl}/_apis/wit/workitemtypes/${encodeURIComponent(task.fields['System.WorkItemType'])}/states`,
+    );
+    const finalStates = metadata.value.filter((state) => state.category === 'Completed');
+    const currentState = task.fields['System.State'];
+    const finalState =
+      finalStates.find((state) => state.name === currentState) ||
+      (finalStates.length === 1 ? finalStates[0] : null);
+    if (!finalState) {
+      throw new ConnectionError(
+        'FINAL_STATE_UNAVAILABLE',
+        'No se pudo determinar un único estado final para esta tarea. Revisá los estados del proceso en Azure.',
+        400,
+      );
+    }
+    if (
+      task.fields['Microsoft.VSTS.Scheduling.CompletedWork'] !== estimate ||
+      task.fields['Microsoft.VSTS.Scheduling.RemainingWork'] !== 0 ||
+      currentState !== finalState.name
+    ) {
       if (!Number.isSafeInteger(task.rev))
         throw new ConnectionError(
           'TASK_REVISION',
@@ -67,6 +86,8 @@ export function createHoursWriter({ projectUrl, request, batch }) {
         [
           { op: 'test', path: '/rev', value: task.rev },
           { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: estimate },
+          { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.RemainingWork', value: 0 },
+          { op: 'add', path: '/fields/System.State', value: finalState.name },
         ],
         true,
         'PATCH',

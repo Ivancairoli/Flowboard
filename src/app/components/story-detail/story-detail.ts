@@ -36,7 +36,7 @@ export class StoryDetail implements OnChanges {
       if (this.story.id === id && this.story.project === project)
         this.hourMessages.update((messages) => ({
           ...messages,
-          [taskId]: `Registradas: ${result.completedHours} h.`,
+          [taskId]: `Registradas: ${result.completedHours} h. Restantes: 0 h. Tarea finalizada.`,
         }));
     } catch (error) {
       if (this.story.id === id && this.story.project === project)

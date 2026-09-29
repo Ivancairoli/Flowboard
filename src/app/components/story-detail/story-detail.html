@@ -81,7 +81,7 @@
                   class="register-hours"
                   [disabled]="registering().has(task.id) || task.estimatedHours == null"
                   [attr.aria-label]="'Registrar horas de la tarea ' + task.id"
-                  title="Asignar las horas estimadas de Azure a las horas trabajadas"
+                  title="Registrar las horas estimadas como trabajadas, dejar las restantes en 0 y finalizar la tarea"
                   (click)="registerHours(task.id)"
                 >
                   {{ registering().has(task.id) ? 'Registrando…' : 'Registrar' }}

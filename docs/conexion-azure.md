@@ -58,7 +58,7 @@ Angular consulta cada 60 segundos mientras la aplicación está abierta. El serv
 
 ## Registrar horas trabajadas
 
-En el detalle de cada historia, el botón **Registrar** de una tarea asigna su estimación original actual de Azure a **Completed Work**. Es una asignación, no una suma: repetirlo con la misma estimación no duplica horas. Se muestran las horas estimadas y trabajadas junto al botón. No cambia Remaining Work ni el estado de la tarea. Si no hay estimación, primero hay que ingresarla en Azure y actualizar el tablero; una estimación de 0 es válida.
+En el detalle de cada historia, el botón **Registrar** de una tarea asigna su estimación original actual de Azure a **Completed Work**. Es una asignación, no una suma: repetirlo con la misma estimación no duplica horas. Se muestran las horas estimadas y trabajadas junto al botón. Además deja Remaining Work en 0 y pasa la tarea al estado de categoría Completed configurado en Azure (por ejemplo, Cerrado, Finalizado o Done). Los tres campos se actualizan juntos, respetando las reglas del proceso. Si no se puede determinar un estado final único, se informa el problema sin enviar cambios. Si no hay estimación, primero hay que ingresarla en Azure y actualizar el tablero; una estimación de 0 es válida.
 
 El clic envía el registro y requiere un PAT con Work Items (Read & write) y permisos de edición. El servidor verifica que la tarea pertenezca a la historia y al proyecto, vuelve a leer la estimación, y usa la revisión de Azure para evitar sobrescribir cambios concurrentes. Si falla o la respuesta es incierta, se muestra el error; actualizar y verificar antes de reintentar. Se invalida la caché del tablero tras cada solicitud.
 
